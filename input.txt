@@ -1,0 +1,6 @@
+number of subscriptions: 250
+company percentage: 30
+value percentage: 20
+drop percentage: 20
+variation percentage: 19
+date percentage: 11
