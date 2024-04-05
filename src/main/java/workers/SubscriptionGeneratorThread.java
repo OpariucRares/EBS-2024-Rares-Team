@@ -1,12 +1,15 @@
-package org.example;
+package workers;
+
+import models.Subscription;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class SubscriptionGeneratorThread extends Thread {
     private int rate;
     private String metaData;
     private int noOfSubs;
-    private ArrayList<Subscription> subscriptions;
+    private List<Subscription> subscriptions;
 
     public SubscriptionGeneratorThread(String metaData, int rate, int noOfSubs) {
         this.metaData = metaData;
@@ -27,7 +30,7 @@ public class SubscriptionGeneratorThread extends Thread {
         }
     }
 
-    public ArrayList<Subscription> getSubscriptions() {
+    public List<Subscription> getSubscriptions() {
         return subscriptions;
     }
 }

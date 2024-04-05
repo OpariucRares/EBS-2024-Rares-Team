@@ -1,6 +1,8 @@
-number of subscriptions: 250
+number of subscriptions: 10
+number of publications: 10
 company percentage: 30
 value percentage: 20
 drop percentage: 20
-variation percentage: 19
-date percentage: 11
+variation percentage: 40
+date percentage: 20
+is parallel: yes

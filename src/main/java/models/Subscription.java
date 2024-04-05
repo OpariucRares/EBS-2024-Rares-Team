@@ -1,11 +1,12 @@
-package org.example;
+package models;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class Subscription {
 
-    private Map<String, String> info = new HashMap();
+    private Map<String, String> info = new HashMap<>();
+
 
     public Subscription() {
     }
@@ -20,9 +21,9 @@ public class Subscription {
 
     @Override
     public String toString() {
-        return "Subscription{" +
-                "info=" + info +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        sb.append("Subscription{info=").append(info).append("}\n");
+        return sb.toString();
     }
 
 
