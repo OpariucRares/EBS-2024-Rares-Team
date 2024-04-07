@@ -3,6 +3,7 @@ package algorithm;
 import algorithm.util.Constants;
 import models.Publication;
 import models.Subscription;
+import workers.NonParallelSubscriptionGenerator;
 import workers.PublisherGeneratorThread;
 import workers.SubscriptionGeneratorThread;
 
@@ -21,6 +22,8 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
     private int variationRate;
     private int dateRate;
     private boolean isParallel;
+
+    public static int minimumCompany;
     private List<Subscription> generatedSubscriptions;
     private List<Publication> generatedPublications;
     public PubSubAlgorithm(){
@@ -29,9 +32,10 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
         companyRate = 30;
         valueRate = 20;
         dropRate = 20;
-        variationRate = 19;
-        dateRate = 11;
+        variationRate = 20;
+        dateRate = 20;
         isParallel = false;
+        minimumCompany = 10;
         generatedSubscriptions = new ArrayList<>();
         generatedPublications = new ArrayList<>();
     }
@@ -73,6 +77,9 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
                     case Constants.IS_PARALLEL_KEY:
                         isParallel = value.equals("yes");
                         break;
+                    case Constants.MINIMUM_COMPANY:
+                        minimumCompany = Integer.parseInt(value);
+                        break;
                     default:
                         System.out.println("Invalid key: " + key);
                 }
@@ -87,7 +94,7 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
     @Override
     public void generateSubscriptions() {
         if (!isParallel){
-            //here the algorithm of generating subscriptions non parallel
+            generateNonParallelSubscriptions();
             return;
         }
 
@@ -137,6 +144,7 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
                     for (String key : sub.getInfo().keySet()) {
                         if (!randomSubscription.getInfo().containsKey(key)) {
                             randomSubscription.addInfo(key, sub.getInfo().get(key));
+                            randomSubscription.addOperator(sub.getOperator().get(0));
                             ok = true;
                         }
 
@@ -258,6 +266,88 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
                         .append("\nDate percentage: ").append(dateRate)
                         .append("\nIs Parallel: ").append(isParallel);
         System.out.println(sb);
+    }
+
+    private void generateNonParallelSubscriptions()
+    {
+        List<String> metadatas = Arrays.asList("Company", "Value", "Drop", "Variation", "Date");
+        List<Integer> threadRates = Arrays.asList(companyRate, valueRate, dropRate, variationRate, dateRate);
+
+        List<NonParallelSubscriptionGenerator> availableGenerators = new ArrayList<>();
+        for (int i = 0; i < metadatas.size(); i++) {
+            NonParallelSubscriptionGenerator generator = new NonParallelSubscriptionGenerator(metadatas.get(i), threadRates.get(i), noOfSubs);
+            availableGenerators.add(generator);
+            generator.generate();
+        }
+
+        int subsCounter = 0;
+
+        for(NonParallelSubscriptionGenerator generator : availableGenerators)
+        {
+            if(generator.getSubscriptions().size() + subsCounter <= noOfSubs )
+            {
+                generatedSubscriptions.addAll(generator.getSubscriptions());
+                subsCounter += generator.getSubscriptions().size();
+                continue;
+            }
+            for(Subscription sub : generator.getSubscriptions())
+            {
+                if(subsCounter < noOfSubs)
+                {
+                    generatedSubscriptions.add(sub);
+                    subsCounter++;
+                    continue;
+                }
+
+                Random random = new Random();
+                boolean ok = false;
+                while(!ok) {
+                    int randomIndex = random.nextInt(generatedSubscriptions.size());
+                    Subscription randomSubscription = generatedSubscriptions.get(randomIndex);
+
+                    for (String key : sub.getInfo().keySet()) {
+                        if (!randomSubscription.getInfo().containsKey(key)) {
+                            randomSubscription.addInfo(key, sub.getInfo().get(key));
+                            randomSubscription.addOperator(sub.getOperator().get(0));
+                            ok = true;
+                        }
+
+                    }
+                }
+            }
+        }
+
+        System.out.println("RESULTS:");
+
+        System.out.println("Number of generated subscriptions: " + generatedSubscriptions.size());
+
+        System.out.println(generatedSubscriptions);
+
+        long companySubscriptionCount = generatedSubscriptions.stream()
+                .filter(subscription -> subscription.getInfo().containsKey("Company"))
+                .count();
+
+        long valueSubscriptionCount = generatedSubscriptions.stream()
+                .filter(subscription -> subscription.getInfo().containsKey("Value"))
+                .count();
+
+        long dropSubscriptionCount = generatedSubscriptions.stream()
+                .filter(subscription -> subscription.getInfo().containsKey("Drop"))
+                .count();
+
+        long variationSubscriptionCount = generatedSubscriptions.stream()
+                .filter(subscription -> subscription.getInfo().containsKey("Variation"))
+                .count();
+
+        long dateSubscriptionCount = generatedSubscriptions.stream()
+                .filter(subscription -> subscription.getInfo().containsKey("Date"))
+                .count();
+
+        System.out.println("Number of subscriptions containing 'Company' key: " + companySubscriptionCount);
+        System.out.println("Number of subscriptions containing 'Value' key: " + valueSubscriptionCount);
+        System.out.println("Number of subscriptions containing 'Drop' key: " + dropSubscriptionCount);
+        System.out.println("Number of subscriptions containing 'Variation' key: " + variationSubscriptionCount);
+        System.out.println("Number of subscriptions containing 'Date' key: " + dateSubscriptionCount);
     }
 
 }

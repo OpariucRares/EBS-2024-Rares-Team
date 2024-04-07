@@ -1,6 +1,5 @@
 package workers;
 
-import algorithm.PubSubAlgorithm;
 import models.Subscription;
 
 import java.time.LocalDate;
@@ -11,7 +10,8 @@ import java.util.Random;
 
 import static algorithm.PubSubAlgorithm.minimumCompany;
 
-public class SubscriptionGeneratorThread extends Thread {
+public class NonParallelSubscriptionGenerator {
+
     private int rate;
     private String metaData;
     private int noOfSubs;
@@ -24,15 +24,14 @@ public class SubscriptionGeneratorThread extends Thread {
     private final double MIN_VALUE = 0.0d;
     private final double MAX_VALUE = 100.0d;
 
-    public SubscriptionGeneratorThread(String metaData, int rate, int noOfSubs) {
+    public NonParallelSubscriptionGenerator(String metaData, int rate, int noOfSubs) {
         this.metaData = metaData;
         this.rate = rate;
         this.noOfSubs = noOfSubs;
         this.subscriptions = new ArrayList<>();
     }
 
-    @Override
-    public void run() {
+    public void generate() {
 
         int actualItems = (rate*noOfSubs)/100;
         Random random = new Random();
@@ -86,4 +85,5 @@ public class SubscriptionGeneratorThread extends Thread {
     public List<Subscription> getSubscriptions() {
         return subscriptions;
     }
+
 }
