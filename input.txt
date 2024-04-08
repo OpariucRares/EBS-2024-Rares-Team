@@ -1,5 +1,5 @@
-number of subscriptions: 100
-number of publications: 100
+number of subscriptions: 10
+number of publications: 10
 company percentage: 30
 value percentage: 20
 drop percentage: 40

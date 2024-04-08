@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import static java.lang.Math.abs;
+
 public class PubSubAlgorithm implements PubSubAlgorithmContract{
     private int noOfSubs;
     private int noOfPubs;
@@ -98,7 +100,7 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
             return;
         }
 
-        List<String> metadatas = Arrays.asList("Company", "Value", "Drop", "Variation", "Date");
+        List<String> metadatas = Constants.metadataKeys;
         List<Integer> threadRates = Arrays.asList(companyRate, valueRate, dropRate, variationRate, dateRate);
 
         List<SubscriptionGeneratorThread> availableThreads = new ArrayList<>();
@@ -153,30 +155,24 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
             }
         }
 
-        System.out.println("RESULTS:");
-
-        System.out.println("Number of generated subscriptions: " + generatedSubscriptions.size());
-
-        System.out.println(generatedSubscriptions);
-
         long companySubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Company"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().COMPANY_INDEX)))
                 .count();
 
         long valueSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Value"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().VALUE_INDEX)))
                 .count();
 
         long dropSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Drop"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().DROP_INDEX)))
                 .count();
 
         long variationSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Variation"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().VARIATION_INDEX)))
                 .count();
 
         long dateSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Date"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().DATE_INDEX)))
                 .count();
 
         System.out.println("Number of subscriptions containing 'Company' key: " + companySubscriptionCount);
@@ -196,10 +192,16 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
             return;
         }
 
-        int limitPubs = 50;
-        int countThreads = noOfPubs / limitPubs + 1;
+        int limitPubs = 5;
+        int countThreads = noOfPubs <= limitPubs ? 1 : noOfPubs / limitPubs + 1;
+
         List<PublisherGeneratorThread> publisherGeneratorThreads = new ArrayList<>();
         for(int i = 0; i < countThreads; i++){
+            if (i == countThreads - 1 && noOfPubs != limitPubs) {
+                limitPubs = noOfPubs % limitPubs;
+            }
+
+
             PublisherGeneratorThread thread = new PublisherGeneratorThread(limitPubs);
             publisherGeneratorThreads.add(thread);
             thread.start();
@@ -270,7 +272,7 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
 
     private void generateNonParallelSubscriptions()
     {
-        List<String> metadatas = Arrays.asList("Company", "Value", "Drop", "Variation", "Date");
+        List<String> metadatas = Constants.metadataKeys;
         List<Integer> threadRates = Arrays.asList(companyRate, valueRate, dropRate, variationRate, dateRate);
 
         List<NonParallelSubscriptionGenerator> availableGenerators = new ArrayList<>();
@@ -284,7 +286,7 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
 
         for(NonParallelSubscriptionGenerator generator : availableGenerators)
         {
-            if(generator.getSubscriptions().size() + subsCounter <= noOfSubs )
+            if(generator.getSubscriptions().size() + subsCounter <= noOfSubs)
             {
                 generatedSubscriptions.addAll(generator.getSubscriptions());
                 subsCounter += generator.getSubscriptions().size();
@@ -317,30 +319,24 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
             }
         }
 
-        System.out.println("RESULTS:");
-
-        System.out.println("Number of generated subscriptions: " + generatedSubscriptions.size());
-
-        System.out.println(generatedSubscriptions);
-
         long companySubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Company"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().COMPANY_INDEX)))
                 .count();
 
         long valueSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Value"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().VALUE_INDEX)))
                 .count();
 
         long dropSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Drop"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().DROP_INDEX)))
                 .count();
 
         long variationSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Variation"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().VARIATION_INDEX)))
                 .count();
 
         long dateSubscriptionCount = generatedSubscriptions.stream()
-                .filter(subscription -> subscription.getInfo().containsKey("Date"))
+                .filter(subscription -> subscription.getInfo().containsKey(metadatas.get(Constants.getInstance().DATE_INDEX)))
                 .count();
 
         System.out.println("Number of subscriptions containing 'Company' key: " + companySubscriptionCount);

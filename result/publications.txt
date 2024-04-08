@@ -1,0 +1,10 @@
+{(company,Facebook);(value,74.27);(drop,42.63);(variation,1.13);(date,21.12.2023)}
+{(company,Google);(value,79.74);(drop,83.52);(variation,4.57);(date,03.04.2023)}
+{(company,Amazon);(value,34.31);(drop,84.14);(variation,2.39);(date,09.07.2023)}
+{(company,Facebook);(value,88.91);(drop,14.88);(variation,0.48);(date,10.11.2023)}
+{(company,Google);(value,14.17);(drop,98.47);(variation,0.85);(date,04.12.2023)}
+{(company,Google);(value,61.98);(drop,57.3);(variation,1.44);(date,07.03.2023)}
+{(company,Netflix);(value,74.77);(drop,57.09);(variation,3.93);(date,10.02.2023)}
+{(company,Netflix);(value,34.54);(drop,69.53);(variation,1.35);(date,13.03.2024)}
+{(company,Netflix);(value,83.72);(drop,58.55);(variation,0.47);(date,22.06.2023)}
+{(company,Netflix);(value,11.43);(drop,77.68);(variation,0.36);(date,15.06.2023)}
