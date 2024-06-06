@@ -192,7 +192,7 @@ public class PubSubAlgorithm implements PubSubAlgorithmContract{
             return;
         }
 
-        int limitPubs = 5;
+        int limitPubs = 1000;
         int countThreads = noOfPubs <= limitPubs ? 1 : noOfPubs / limitPubs + 1;
 
         List<PublisherGeneratorThread> publisherGeneratorThreads = new ArrayList<>();

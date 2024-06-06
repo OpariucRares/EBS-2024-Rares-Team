@@ -1,0 +1,10 @@
+Subscription{(Company,=,Amazon);}
+Subscription{(Company,=,Netflix);}
+Subscription{(Company,=,Netflix);(Variation,=,3.49);}
+Subscription{(Value,>=,0.63);(Variation,>,2.6);(Date,<=,2023-06-21);}
+Subscription{(Value,=,39.34);}
+Subscription{(Drop,>=,62.37);}
+Subscription{(Variation,<,3.07);(Drop,>,15.49);}
+Subscription{(Drop,<=,10.69);}
+Subscription{(Drop,>,51.96);}
+Subscription{(Variation,>=,0.36);(Date,<=,2023-05-16);}
