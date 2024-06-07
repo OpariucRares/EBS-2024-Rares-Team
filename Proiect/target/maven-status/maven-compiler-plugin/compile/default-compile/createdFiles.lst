@@ -1,0 +1,10 @@
+workers/publish/SubscriptionGeneratorThread.class
+Main.class
+workers/publish/PublisherGeneratorThread.class
+workers/publish/PublisherSpout.class
+models/Subscription.class
+util/Constants.class
+workers/publish/BrokerBolt.class
+workers/publish/SubscriberSpout.class
+workers/publish/PublicationBolt.class
+models/Publication.class
