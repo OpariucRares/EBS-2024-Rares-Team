@@ -1,6 +1,6 @@
 package workers.publish;
 
-import algorithm.util.Constants;
+import util.Constants;
 import models.Subscription;
 
 import java.time.LocalDate;
