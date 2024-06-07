@@ -1,6 +1,7 @@
 package models;
 
-
+import org.json.JSONObject;
+import org.json.JSONException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,4 +45,42 @@ public class Subscription {
         return sb.toString();
     }
 
+    public boolean matches(String publication) {
+        try {
+            JSONObject json = new JSONObject(publication);
+            int i = 0;
+            for (Map.Entry<String, String> entry : info.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
+                String op = operator.get(i);
+
+                int pubValue = json.getInt(key);
+
+                switch (op) {
+                    case "=":
+                        if (pubValue != Integer.parseInt(value)) return false;
+                        break;
+                    case ">":
+                        if (pubValue <= Integer.parseInt(value)) return false;
+                        break;
+                    case "<":
+                        if (pubValue >= Integer.parseInt(value)) return false;
+                        break;
+                    case ">=":
+                        if (pubValue < Integer.parseInt(value)) return false;
+                        break;
+                    case "<=":
+                        if (pubValue > Integer.parseInt(value)) return false;
+                        break;
+                    default:
+                        return false;
+                }
+                i++;
+            }
+            return true;
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }
