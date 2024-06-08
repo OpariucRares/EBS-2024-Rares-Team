@@ -7,7 +7,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
-public class Publication {
+public class PublicationDEPRECATED {
     private final double MIN_VALUE = 0.0d;
     private final double MAX_VALUE = 100.0d;
     private final double MIN_VARIATION = 0.0d;
@@ -21,7 +21,7 @@ public class Publication {
     private final double drop;
     private final double variation;
     private final Date date;
-    public Publication(){
+    public PublicationDEPRECATED(){
         Random random = new Random();
 
         int indexCompany = random.nextInt(companies.size());

@@ -1,6 +1,6 @@
 package workers.publish;
 
-import models.Subscription;
+import models.SubscriptionDEPRECATED;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichSpout;
@@ -13,7 +13,7 @@ import java.util.Map;
 public class SubscriberSpout implements IRichSpout {
     private SpoutOutputCollector collector;
     private String subscriberId;
-    private transient Subscription subscription; // Make subscription transient
+    private transient SubscriptionDEPRECATED subscriptionDEPRECATED; // Make subscription transient
     private boolean sent;
     private String field;
     private String value;
@@ -30,15 +30,15 @@ public class SubscriberSpout implements IRichSpout {
     @Override
     public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
         this.collector = collector;
-        this.subscription = new Subscription();
-        this.subscription.addInfo(field, value);
-        this.subscription.addOperator(operator);
+        this.subscriptionDEPRECATED = new SubscriptionDEPRECATED();
+        this.subscriptionDEPRECATED.addInfo(field, value);
+        this.subscriptionDEPRECATED.addOperator(operator);
     }
 
     @Override
     public void nextTuple() {
         if (!sent) {
-            collector.emit(new Values(subscriberId, subscription));
+            collector.emit(new Values(subscriberId, subscriptionDEPRECATED));
             sent = true;
         }
     }

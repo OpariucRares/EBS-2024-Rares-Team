@@ -1,25 +1,25 @@
 package workers.publish;
 
-import models.Publication;
+import models.PublicationDEPRECATED;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class PublisherGeneratorThread extends Thread {
     private final int noOfPublishers;
-    private List<Publication> publications;
+    private List<PublicationDEPRECATED> publicationDEPRECATEDS;
     public PublisherGeneratorThread(int noOfPublishers){
         this.noOfPublishers = noOfPublishers;
-        publications = new ArrayList<>();
+        publicationDEPRECATEDS = new ArrayList<>();
     }
-    public List<Publication> getPublications(){
-        return publications;
+    public List<PublicationDEPRECATED> getPublications(){
+        return publicationDEPRECATEDS;
     }
     @Override
     public void run() {
         for(int i = 0; i < noOfPublishers; i++){
-            Publication pub = new Publication();
-            publications.add(pub);
+            PublicationDEPRECATED pub = new PublicationDEPRECATED();
+            publicationDEPRECATEDS.add(pub);
         }
     }
 }

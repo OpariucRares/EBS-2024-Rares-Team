@@ -7,12 +7,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Subscription {
+public class SubscriptionDEPRECATED {
 
     private Map<String, String> info = new HashMap<>();
     private List<String> operator = new ArrayList<>();
 
-    public Subscription() {
+    public SubscriptionDEPRECATED() {
     }
 
     public Map<String, String> getInfo() {

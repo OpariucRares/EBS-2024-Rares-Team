@@ -1,35 +1,102 @@
-import models.Subscription;
+import models.publication.Publication;
+import models.publication.PublicationField;
+import models.subscription.Subscription;
+import models.subscription.SubscriptionField;
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
-import workers.publish.BrokerBolt;
-import workers.publish.PublisherSpout;
-import workers.publish.SubscriberSpout;
-
+import models.publication.PublicationGenerator;
+import models.subscription.SubscriptionGenerator;
+import storm.BrokerBolt;
+import storm.PublisherSpout;
+import storm.SubscriberBolt;
+import util.Constants;
 import java.util.Arrays;
+import java.util.Date;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class Main {
     public static void main(String[] args) throws Exception {
+        Constants constants = new Constants();
+
+        SubscriptionGenerator subscriptionGenerator = new SubscriptionGenerator();
+        var subscriptions = subscriptionGenerator.generateSubscriptions(10, constants.fieldFreq, constants.eqFreq);
+
+//        // Serialize subscriptions to JSON
+//        JSONArray subscriptionsJson = new JSONArray();
+//        for (Subscription subscription : subscriptions) {
+//            JSONObject subscriptionJson = new JSONObject();
+//            JSONArray fieldsJson = new JSONArray();
+//            for (SubscriptionField field : subscription.getFields()) {
+//                JSONObject fieldJson = new JSONObject();
+//                fieldJson.put("name", field.getFieldName());
+//                fieldJson.put("value", field.getValue());
+//                fieldsJson.put(fieldJson);
+//            }
+//            subscriptionJson.put("fields", fieldsJson);
+//            subscriptionsJson.put(subscriptionJson);
+//        }
+
+        // Serialize subscriptions to JSON
+        JSONArray subscriptionsJson = new JSONArray();
+        for (Subscription subscription : subscriptions) {
+            JSONObject subscriptionJson = new JSONObject();
+            JSONArray fieldsJson = new JSONArray();
+            for (SubscriptionField field : subscription.getFields()) {
+                JSONObject fieldJson = new JSONObject();
+                fieldJson.put("fieldName", field.getFieldName());
+                fieldJson.put("operator", field.getOperator());
+                if (field.getValue() instanceof Date) {
+                    fieldJson.put("value", SubscriptionField.getDateFormat().format(field.getValue()));
+                    fieldJson.put("valueType", "Date");
+                } else {
+                    fieldJson.put("value", field.getValue().toString());
+                    fieldJson.put("valueType", field.getValue().getClass().getSimpleName());
+                }
+                fieldsJson.put(fieldJson);
+            }
+            subscriptionJson.put("fields", fieldsJson);
+            subscriptionsJson.put(subscriptionJson);
+        }
+
+        PublicationGenerator publicationGenerator = new PublicationGenerator();
+        var publications = publicationGenerator.generatePublications(10, constants.pubFieldFreq);
+//        var publications2 = publicationGenerator.generatePublications(100000, constants.pubFieldFreq);
+
+        // Serialize publications to JSON
+        JSONArray publicationsJson = new JSONArray();
+        for (Publication publication : publications) {
+            JSONObject publicationJson = new JSONObject();
+            JSONArray fieldsJson = new JSONArray();
+            for (PublicationField field : publication.getFields()) {
+                JSONObject fieldJson = new JSONObject();
+                fieldJson.put("name", field.getFieldName());
+                fieldJson.put("value", field.getValue());
+                fieldsJson.put(fieldJson);
+            }
+            publicationJson.put("fields", fieldsJson);
+            publicationsJson.put(publicationJson);
+        }
+
+        // One PublisherSpout instance might mean duplicated values
+        PublisherSpout publisherSpout = new PublisherSpout();
+        BrokerBolt brokerBolt = new BrokerBolt();
+        SubscriberBolt subscriberBolt = new SubscriberBolt();
+
         TopologyBuilder builder = new TopologyBuilder();
-
-        // Publishers
-        builder.setSpout("publisher1", new PublisherSpout(true), 1);
-        builder.setSpout("publisher2", new PublisherSpout(true), 1);
-
-        // Brokers
-        builder.setBolt("broker1", new BrokerBolt(), 1).shuffleGrouping("publisher1").shuffleGrouping("publisher2");
-        builder.setBolt("broker2", new BrokerBolt(), 1).shuffleGrouping("publisher1").shuffleGrouping("publisher2");
-
-        // Subscribers
-        builder.setSpout("subscriber1", new SubscriberSpout("subscriber1", "field1", "10", ">="), 1);
-        builder.setSpout("subscriber2", new SubscriberSpout("subscriber2", "field2", "20", "<"), 1);
-
+        builder.setSpout("publisher-spout", publisherSpout, 2);
+        builder.setBolt("broker-bolt", brokerBolt, 3).shuffleGrouping("publisher-spout");
+        builder.setBolt("subscriber-bolt", subscriberBolt, 3).shuffleGrouping("broker-bolt");
 
         // Config
         Config config = new Config();
         config.setDebug(true);
 
+        config.put("subscriptions", subscriptionsJson.toString());
+        config.put("publications", publicationsJson.toString());
         config.setNumWorkers(3);
 
         config.put(Config.STORM_ZOOKEEPER_SERVERS, Arrays.asList("localhost"));

@@ -1,6 +1,6 @@
 package workers.publish;
 
-import models.Subscription;
+import models.SubscriptionDEPRECATED;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichBolt;
@@ -13,7 +13,7 @@ import java.util.*;
 
 public class BrokerBolt implements IRichBolt {
     private OutputCollector collector;
-    private Map<String, List<Subscription>> subscriptionsMap;
+    private Map<String, List<SubscriptionDEPRECATED>> subscriptionsMap;
     private List<String> subscribers;
 
     @Override
@@ -28,16 +28,16 @@ public class BrokerBolt implements IRichBolt {
         String sourceComponent = input.getSourceComponent();
         if (sourceComponent.equals("subscriber")) {
             String subscriberId = input.getStringByField("subscriberId");
-            Subscription subscription = (Subscription) input.getValueByField("subscription");
-            subscriptionsMap.computeIfAbsent(subscriberId, k -> new ArrayList<>()).add(subscription);
+            SubscriptionDEPRECATED subscriptionDEPRECATED = (SubscriptionDEPRECATED) input.getValueByField("subscription");
+            subscriptionsMap.computeIfAbsent(subscriberId, k -> new ArrayList<>()).add(subscriptionDEPRECATED);
             if (!subscribers.contains(subscriberId)) {
                 subscribers.add(subscriberId);
             }
         } else if (sourceComponent.equals("publisher")) {
             String publication = input.getStringByField("publication");
             for (String subscriber : subscribers) {
-                for (Subscription subscription : subscriptionsMap.get(subscriber)) {
-                    if (subscription.matches(publication)) {
+                for (SubscriptionDEPRECATED subscriptionDEPRECATED : subscriptionsMap.get(subscriber)) {
+                    if (subscriptionDEPRECATED.matches(publication)) {
                         collector.emit(new Values(subscriber, publication));
                     }
                 }

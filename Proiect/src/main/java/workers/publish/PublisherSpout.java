@@ -1,6 +1,6 @@
 package workers.publish;
 
-import models.Publication;
+import models.PublicationDEPRECATED;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.IRichSpout;
@@ -25,7 +25,7 @@ public class PublisherSpout implements IRichSpout {
 
     @Override
     public void nextTuple() {
-        String publication = new Publication().toString();
+        String publication = new PublicationDEPRECATED().toString();
         collector.emit(new Values(publication));
     }
 
