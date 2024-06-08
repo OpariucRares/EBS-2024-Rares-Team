@@ -4,10 +4,10 @@ import org.apache.storm.StormSubmitter;
 import org.apache.storm.topology.TopologyBuilder;
 import models.publication.PublicationGenerator;
 import models.subscription.SubscriptionGenerator;
+import org.apache.storm.tuple.Fields;
 import storm.BrokerBolt;
 import storm.PublisherSpout;
 import storm.SubscriberBolt;
-import storm.SubscriberSpout;
 import util.Constants;
 import java.util.Arrays;
 
@@ -18,88 +18,44 @@ public class Main {
         SubscriptionGenerator subscriptionGenerator = new SubscriptionGenerator();
         var subscriptions = subscriptionGenerator.generateSubscriptions(10, constants.fieldFreq, constants.eqFreq);
 
-//        // Serialize subscriptions to JSON
-//        JSONArray subscriptionsJson = new JSONArray();
-//        for (Subscription subscription : subscriptions) {
-//            JSONObject subscriptionJson = new JSONObject();
-//            JSONArray fieldsJson = new JSONArray();
-//            for (SubscriptionField field : subscription.getFields()) {
-//                JSONObject fieldJson = new JSONObject();
-//                fieldJson.put("name", field.getFieldName());
-//                fieldJson.put("value", field.getValue());
-//                fieldsJson.put(fieldJson);
-//            }
-//            subscriptionJson.put("fields", fieldsJson);
-//            subscriptionsJson.put(subscriptionJson);
-//        }
-
-        // Serialize subscriptions to JSON
-//        JSONArray subscriptionsJson = new JSONArray();
-//        for (Subscription subscription : subscriptions) {
-//            JSONObject subscriptionJson = new JSONObject();
-//            JSONArray fieldsJson = new JSONArray();
-//            for (SubscriptionField field : subscription.getFields()) {
-//                JSONObject fieldJson = new JSONObject();
-//                fieldJson.put("fieldName", field.getFieldName());
-//                fieldJson.put("operator", field.getOperator());
-//                if (field.getValue() instanceof Date) {
-//                    fieldJson.put("value", SubscriptionField.getDateFormat().format(field.getValue()));
-//                    fieldJson.put("valueType", "Date");
-//                } else {
-//                    fieldJson.put("value", field.getValue().toString());
-//                    fieldJson.put("valueType", field.getValue().getClass().getSimpleName());
-//                }
-//                fieldsJson.put(fieldJson);
-//            }
-//            subscriptionJson.put("fields", fieldsJson);
-//            subscriptionsJson.put(subscriptionJson);
-//        }
-
         PublicationGenerator publicationGenerator = new PublicationGenerator();
         var publications = publicationGenerator.generatePublications(10, constants.pubFieldFreq);
 //        var publications2 = publicationGenerator.generatePublications(100000, constants.pubFieldFreq);
 
-        // Serialize publications to JSON
-//        JSONArray publicationsJson = new JSONArray();
-//        for (Publication publication : publications) {
-//            JSONObject publicationJson = new JSONObject();
-//            JSONArray fieldsJson = new JSONArray();
-//            for (PublicationField field : publication.getFields()) {
-//                JSONObject fieldJson = new JSONObject();
-//                fieldJson.put("name", field.getFieldName());
-//                fieldJson.put("value", field.getValue());
-//                fieldsJson.put(fieldJson);
-//            }
-//            publicationJson.put("fields", fieldsJson);
-//            publicationsJson.put(publicationJson);
-//        }
 
         // One PublisherSpout instance might mean duplicated values
         PublisherSpout publisherSpout = new PublisherSpout(publications);
         PublisherSpout publisherSpout2 = new PublisherSpout(publications);
         BrokerBolt brokerBolt = new BrokerBolt();
         BrokerBolt brokerBolt2 = new BrokerBolt();
-        SubscriberSpout subscriberSpout = new SubscriberSpout(subscriptions);
-        SubscriberBolt subscriberBolt2 = new SubscriberBolt();
-        SubscriberBolt subscriberBolt3 = new SubscriberBolt();
+        SubscriberBolt subscriberBolt = new SubscriberBolt("subscriber-123", subscriptions);
 
         TopologyBuilder builder = new TopologyBuilder();
+
+        // Adăugarea PublisherSpout la topologie
         builder.setSpout("publisher-spout", publisherSpout, 2);
-        builder.setSpout("subscriber-spout", subscriberSpout, 3);
-        builder.setBolt("broker-bolt", brokerBolt, 3).shuffleGrouping("publisher-spout").shuffleGrouping("subscriber-spout");
+
+        // Adăugarea BrokerBolt la topologie
+        builder.setBolt("broker-bolt", brokerBolt, 3)
+                .shuffleGrouping("publisher-spout")
+                .fieldsGrouping("subscriber-bolt", "subscription-stream", new Fields("subscriberId"));
+
+        // Adăugarea SubscriberBolt la topologie
+        builder.setBolt("subscriber-bolt", subscriberBolt, 2)
+                .shuffleGrouping("broker-bolt", "notification-stream");
 
         // Config
         Config config = new Config();
         config.setDebug(true);
 
-//        config.put("subscriptions", subscriptionsJson.toString());
-//        config.put("publications", publicationsJson.toString());
         config.setNumWorkers(3);
 
         config.put(Config.STORM_ZOOKEEPER_SERVERS, Arrays.asList("localhost"));
         config.put(Config.STORM_ZOOKEEPER_PORT, 2181);
 
         config.registerSerialization(java.util.Date.class);
+        //config.registerSerialization(models.subscription.Subscription.class);
+        //config.registerSerialization(java.util.Collections.class);
 
         if (args.length == 0) {
             // Run the topology in a local cluster

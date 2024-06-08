@@ -11,10 +11,7 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -36,21 +33,38 @@ public class BrokerBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         String sourceComponent = tuple.getSourceComponent();
-        if (sourceComponent.equals("subscriber-spout")) {
+        System.out.println("Input source" + sourceComponent);
+        if (sourceComponent.equals("subscriber-bolt")) {
             System.out.println("I am subscriber");
             //logica de preluare a valorilor de la spout-ul subscriber
             //String subscriberId = input.getStringByField("subscriberId");
             //SubscriptionDEPRECATED subscriptionDEPRECATED = (SubscriptionDEPRECATED) input.getValueByField("subscription");
             //doar il adauga
+
+//            String subscriberId = tuple.getStringByField("subscriberId");
+//            Subscription subscription = (Subscription) tuple.getValueByField("subscription");
+//            // Adăugarea subscripției la lista internă, asociată cu subscriberId
+//            subscriptions.add(subscription);
         }
         else if (sourceComponent.equals("publisher-spout")) {
             System.out.println("I am publisher");
+
+//            Publication publication = (Publication) tuple.getValueByField("publication");
+//            // Verificarea potrivirii publicației cu fiecare subscripție
+//            for (Subscription subscription : subscriptions) {
+//                if (subscription.matches(publication)) {
+//                    // Emiterea notificării către SubscriberBolt corespunzător
+//                    collector.emit(new Values(subscription.getSubscriberId(), publication));
+//                }
+//            }
+
             //cauti in lista de subscriberi -> gasesti, faci match
             //String publication = input.getStringByField("publication");
             //            for (String subscriber : subscribers) {
             //                for (SubscriptionDEPRECATED subscriptionDEPRECATED : subscriptionsMap.get(subscriber)) {
             //                    if (subscriptionDEPRECATED.matches(publication)) {
-            //                        collector.emit(new Values(subscriber, publication));
+                                    //TODO: AICI ESTI PE NOTIFICATION STREAM CAND SE FACE MATCH-UL CORECT
+            //                         collector.emit("notification-stream", new Values(subscription.getSubscriberId(), publication));
             //                    }
             //                }
             //            }
@@ -89,6 +103,6 @@ public class BrokerBolt extends BaseRichBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("publication"));
+        declarer.declareStream("notification-stream", new Fields("subscriberId", "publication"));
     }
 }

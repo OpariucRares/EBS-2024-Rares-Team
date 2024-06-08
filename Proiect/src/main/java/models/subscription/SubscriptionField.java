@@ -1,6 +1,5 @@
 package models.subscription;
 
-import org.json.JSONObject;
 
 import java.io.Serializable;
 import java.text.ParseException;
@@ -40,36 +39,9 @@ public class SubscriptionField implements Serializable {
         return "(" + fieldName + ", " + operator + ", " + value + ")";
     }
 
-    public static SubscriptionField fromJson(JSONObject jsonObject) throws ParseException {
-        String fieldName = jsonObject.getString("fieldName");
-        String operator = jsonObject.getString("operator");
-        Object value = jsonObject.get("value");
-
-        if (value instanceof String) {
-            String strValue = (String) value;
-            if (strValue.matches("\\d{2}\\.\\d{2}\\.\\d{4}")) {
-                value = dateFormat.parse(strValue);
-            }
-        } else if (jsonObject.has("dateValue")) {
-            value = dateFormat.parse(jsonObject.getString("dateValue"));
-        }
-
-        return new SubscriptionField(fieldName, operator, value);
-    }
 
     public static SimpleDateFormat getDateFormat() {
         return dateFormat;
     }
 
-    public JSONObject toJson() {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("fieldName", fieldName);
-        jsonObject.put("operator", operator);
-        if (value instanceof Date) {
-            jsonObject.put("value", dateFormat.format((Date) value));
-        } else {
-            jsonObject.put("value", value);
-        }
-        return jsonObject;
-    }
 }
