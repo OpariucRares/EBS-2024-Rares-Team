@@ -75,13 +75,15 @@ public class BrokerBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         String sourceComponent = tuple.getSourceComponent();
-        if (sourceComponent.equals("subscriber")) {
+        if (sourceComponent.equals("subscriber-bolt-1")) {
+            System.out.println("I am subscriber");
             //logica de preluare a valorilor de la spout-ul subscriber
             //String subscriberId = input.getStringByField("subscriberId");
             //SubscriptionDEPRECATED subscriptionDEPRECATED = (SubscriptionDEPRECATED) input.getValueByField("subscription");
             //doar il adauga
         }
-        else if (sourceComponent.equals("publisher")){
+        else if (sourceComponent.equals("publisher-spout-1")){
+            System.out.println("I am publisher");
             //cauti in lista de subscriberi -> gasesti, faci match
             //String publication = input.getStringByField("publication");
             //            for (String subscriber : subscribers) {

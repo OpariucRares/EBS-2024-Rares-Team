@@ -82,14 +82,22 @@ public class Main {
 //        }
 
         // One PublisherSpout instance might mean duplicated values
-        PublisherSpout publisherSpout = new PublisherSpout(publications);
-        BrokerBolt brokerBolt = new BrokerBolt();
-        SubscriberBolt subscriberBolt = new SubscriberBolt();
+        PublisherSpout publisherSpout1 = new PublisherSpout(publications);
+        PublisherSpout publisherSpout2 = new PublisherSpout(publications);
+        BrokerBolt brokerBolt1 = new BrokerBolt();
+        BrokerBolt brokerBolt2 = new BrokerBolt();
+        SubscriberBolt subscriberBolt1 = new SubscriberBolt();
+        SubscriberBolt subscriberBolt2 = new SubscriberBolt();
+        SubscriberBolt subscriberBolt3 = new SubscriberBolt();
 
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout("publisher-spout", publisherSpout, 2);
-        builder.setBolt("broker-bolt", brokerBolt, 3).shuffleGrouping("publisher-spout");
-        builder.setBolt("subscriber-bolt", subscriberBolt, 3).shuffleGrouping("broker-bolt");
+        builder.setSpout("publisher-spout-1", publisherSpout1, 1);
+        builder.setSpout("publisher-spout-2", publisherSpout2, 1);
+        builder.setBolt("broker-bolt-1", brokerBolt1, 2).shuffleGrouping("publisher-spout-1").shuffleGrouping("publisher-spout-2");
+        builder.setBolt("broker-bolt-2", brokerBolt2, 2).shuffleGrouping("publisher-spout-1").shuffleGrouping("publisher-spout-2");
+        builder.setBolt("subscriber-bolt-1", subscriberBolt1, 1).shuffleGrouping("broker-bolt-1").shuffleGrouping("broker-bolt-2");
+        builder.setBolt("subscriber-bolt-2", subscriberBolt2, 1).shuffleGrouping("broker-bolt-1").shuffleGrouping("broker-bolt-2");
+        builder.setBolt("subscriber-bolt-3", subscriberBolt3, 1).shuffleGrouping("broker-bolt-1").shuffleGrouping("broker-bolt-2");
 
         // Config
         Config config = new Config();
