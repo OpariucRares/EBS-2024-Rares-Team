@@ -1,9 +1,10 @@
 package models.publication;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class PublicationField {
+public class PublicationField implements Serializable {
     private String fieldName;
     private Object value;
 

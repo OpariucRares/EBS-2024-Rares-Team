@@ -41,48 +41,48 @@ public class Main {
 //        }
 
         // Serialize subscriptions to JSON
-        JSONArray subscriptionsJson = new JSONArray();
-        for (Subscription subscription : subscriptions) {
-            JSONObject subscriptionJson = new JSONObject();
-            JSONArray fieldsJson = new JSONArray();
-            for (SubscriptionField field : subscription.getFields()) {
-                JSONObject fieldJson = new JSONObject();
-                fieldJson.put("fieldName", field.getFieldName());
-                fieldJson.put("operator", field.getOperator());
-                if (field.getValue() instanceof Date) {
-                    fieldJson.put("value", SubscriptionField.getDateFormat().format(field.getValue()));
-                    fieldJson.put("valueType", "Date");
-                } else {
-                    fieldJson.put("value", field.getValue().toString());
-                    fieldJson.put("valueType", field.getValue().getClass().getSimpleName());
-                }
-                fieldsJson.put(fieldJson);
-            }
-            subscriptionJson.put("fields", fieldsJson);
-            subscriptionsJson.put(subscriptionJson);
-        }
+//        JSONArray subscriptionsJson = new JSONArray();
+//        for (Subscription subscription : subscriptions) {
+//            JSONObject subscriptionJson = new JSONObject();
+//            JSONArray fieldsJson = new JSONArray();
+//            for (SubscriptionField field : subscription.getFields()) {
+//                JSONObject fieldJson = new JSONObject();
+//                fieldJson.put("fieldName", field.getFieldName());
+//                fieldJson.put("operator", field.getOperator());
+//                if (field.getValue() instanceof Date) {
+//                    fieldJson.put("value", SubscriptionField.getDateFormat().format(field.getValue()));
+//                    fieldJson.put("valueType", "Date");
+//                } else {
+//                    fieldJson.put("value", field.getValue().toString());
+//                    fieldJson.put("valueType", field.getValue().getClass().getSimpleName());
+//                }
+//                fieldsJson.put(fieldJson);
+//            }
+//            subscriptionJson.put("fields", fieldsJson);
+//            subscriptionsJson.put(subscriptionJson);
+//        }
 
         PublicationGenerator publicationGenerator = new PublicationGenerator();
         var publications = publicationGenerator.generatePublications(10, constants.pubFieldFreq);
 //        var publications2 = publicationGenerator.generatePublications(100000, constants.pubFieldFreq);
 
         // Serialize publications to JSON
-        JSONArray publicationsJson = new JSONArray();
-        for (Publication publication : publications) {
-            JSONObject publicationJson = new JSONObject();
-            JSONArray fieldsJson = new JSONArray();
-            for (PublicationField field : publication.getFields()) {
-                JSONObject fieldJson = new JSONObject();
-                fieldJson.put("name", field.getFieldName());
-                fieldJson.put("value", field.getValue());
-                fieldsJson.put(fieldJson);
-            }
-            publicationJson.put("fields", fieldsJson);
-            publicationsJson.put(publicationJson);
-        }
+//        JSONArray publicationsJson = new JSONArray();
+//        for (Publication publication : publications) {
+//            JSONObject publicationJson = new JSONObject();
+//            JSONArray fieldsJson = new JSONArray();
+//            for (PublicationField field : publication.getFields()) {
+//                JSONObject fieldJson = new JSONObject();
+//                fieldJson.put("name", field.getFieldName());
+//                fieldJson.put("value", field.getValue());
+//                fieldsJson.put(fieldJson);
+//            }
+//            publicationJson.put("fields", fieldsJson);
+//            publicationsJson.put(publicationJson);
+//        }
 
         // One PublisherSpout instance might mean duplicated values
-        PublisherSpout publisherSpout = new PublisherSpout();
+        PublisherSpout publisherSpout = new PublisherSpout(publications);
         BrokerBolt brokerBolt = new BrokerBolt();
         SubscriberBolt subscriberBolt = new SubscriberBolt();
 
@@ -95,8 +95,8 @@ public class Main {
         Config config = new Config();
         config.setDebug(true);
 
-        config.put("subscriptions", subscriptionsJson.toString());
-        config.put("publications", publicationsJson.toString());
+//        config.put("subscriptions", subscriptionsJson.toString());
+//        config.put("publications", publicationsJson.toString());
         config.setNumWorkers(3);
 
         config.put(Config.STORM_ZOOKEEPER_SERVERS, Arrays.asList("localhost"));
@@ -105,7 +105,7 @@ public class Main {
         if (args.length == 0) {
             // Run the topology in a local cluster
             LocalCluster cluster = new LocalCluster();
-            cluster.submitTopology("word-count-topology", config, builder.createTopology());
+            cluster.submitTopology("word-count-topology-one", config, builder.createTopology());
 
             // Keep the topology running for some time (e.g., 60 seconds) for demonstration purposes
             Thread.sleep(6000);

@@ -31,49 +31,67 @@ public class BrokerBolt extends BaseRichBolt {
     @Override
     public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
-        String subscriptionsJson = (String) topoConf.get("subscriptions");
-
-        // Null check
-        if (subscriptionsJson == null) {
-            throw new RuntimeException("subscriptionsJson is null");
-        }
-
-        JSONArray jsonArray = new JSONArray(subscriptionsJson);
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject jsonObject = jsonArray.getJSONObject(i);
-            JSONArray fieldsArray = jsonObject.getJSONArray("fields");
-            List<SubscriptionField> fields = new ArrayList<>();
-            for (int j = 0; j < fieldsArray.length(); j++) {
-                JSONObject fieldObject = fieldsArray.getJSONObject(j);
-                String fieldName = fieldObject.getString("fieldName");
-                String operator = fieldObject.getString("operator");
-                String valueType = fieldObject.getString("valueType");
-                Object value;
-
-                try {
-                    if ("Date".equals(valueType)) {
-                        value = SubscriptionField.getDateFormat().parse(fieldObject.getString("value"));
-                    } else if ("Integer".equals(valueType)) {
-                        value = Integer.parseInt(fieldObject.getString("value"));
-                    } else if ("Double".equals(valueType)) {
-                        value = Double.parseDouble(fieldObject.getString("value"));
-                    } else {
-                        value = fieldObject.getString("value");
-                    }
-                } catch (ParseException e) {
-                    throw new RuntimeException("Error parsing date field", e);
-                }
-
-                SubscriptionField field = new SubscriptionField(fieldName, operator, value);
-                fields.add(field);
-            }
-            Subscription subscription = new Subscription(fields);
-            this.subscriptions.add(subscription);
-        }
+//        String subscriptionsJson = (String) topoConf.get("subscriptions");
+//
+//        // Null check
+//        if (subscriptionsJson == null) {
+//            throw new RuntimeException("subscriptionsJson is null");
+//        }
+//
+//        JSONArray jsonArray = new JSONArray(subscriptionsJson);
+//        for (int i = 0; i < jsonArray.length(); i++) {
+//            JSONObject jsonObject = jsonArray.getJSONObject(i);
+//            JSONArray fieldsArray = jsonObject.getJSONArray("fields");
+//            List<SubscriptionField> fields = new ArrayList<>();
+//            for (int j = 0; j < fieldsArray.length(); j++) {
+//                JSONObject fieldObject = fieldsArray.getJSONObject(j);
+//                String fieldName = fieldObject.getString("fieldName");
+//                String operator = fieldObject.getString("operator");
+//                String valueType = fieldObject.getString("valueType");
+//                Object value;
+//
+//                try {
+//                    if ("Date".equals(valueType)) {
+//                        value = SubscriptionField.getDateFormat().parse(fieldObject.getString("value"));
+//                    } else if ("Integer".equals(valueType)) {
+//                        value = Integer.parseInt(fieldObject.getString("value"));
+//                    } else if ("Double".equals(valueType)) {
+//                        value = Double.parseDouble(fieldObject.getString("value"));
+//                    } else {
+//                        value = fieldObject.getString("value");
+//                    }
+//                } catch (ParseException e) {
+//                    throw new RuntimeException("Error parsing date field", e);
+//                }
+//
+//                SubscriptionField field = new SubscriptionField(fieldName, operator, value);
+//                fields.add(field);
+//            }
+//            Subscription subscription = new Subscription(fields);
+//            this.subscriptions.add(subscription);
+//        }
     }
 
     @Override
     public void execute(Tuple tuple) {
+        String sourceComponent = tuple.getSourceComponent();
+        if (sourceComponent.equals("subscriber")) {
+            //logica de preluare a valorilor de la spout-ul subscriber
+            //String subscriberId = input.getStringByField("subscriberId");
+            //SubscriptionDEPRECATED subscriptionDEPRECATED = (SubscriptionDEPRECATED) input.getValueByField("subscription");
+            //doar il adauga
+        }
+        else if (sourceComponent.equals("publisher")){
+            //cauti in lista de subscriberi -> gasesti, faci match
+            //String publication = input.getStringByField("publication");
+            //            for (String subscriber : subscribers) {
+            //                for (SubscriptionDEPRECATED subscriptionDEPRECATED : subscriptionsMap.get(subscriber)) {
+            //                    if (subscriptionDEPRECATED.matches(publication)) {
+            //                        collector.emit(new Values(subscriber, publication));
+            //                    }
+            //                }
+            //            }
+        }
         String company = tuple.getStringByField("company");
         double value = tuple.getDoubleByField("value");
         double drop = tuple.getDoubleByField("drop");

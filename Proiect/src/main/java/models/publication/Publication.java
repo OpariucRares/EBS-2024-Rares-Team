@@ -1,10 +1,11 @@
 package models.publication;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Publication {
+public class Publication implements Serializable {
     private final List<PublicationField> fields;
 
     public Publication() {

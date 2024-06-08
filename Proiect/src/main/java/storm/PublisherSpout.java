@@ -22,29 +22,15 @@ public class PublisherSpout extends BaseRichSpout {
     private List<Publication> publications;
     private int index;
 
-    public PublisherSpout() {
-        this.publications = new ArrayList<>();
+    public PublisherSpout(List<Publication> publications) {
+        this.publications = publications;
         this.index = 0;
     }
 
     @Override
     public void open(Map<String, Object> conf, TopologyContext context, SpoutOutputCollector collector) {
         this.collector = collector;
-        String publicationsJson = (String) conf.get("publications");
 
-        JSONArray jsonArray = new JSONArray(publicationsJson);
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject jsonObject = jsonArray.getJSONObject(i);
-            JSONArray fieldsArray = jsonObject.getJSONArray("fields");
-            Publication publication = new Publication();
-            for (int j = 0; j < fieldsArray.length(); j++) {
-                JSONObject fieldObject = fieldsArray.getJSONObject(j);
-                String name = fieldObject.getString("name");
-                Object value = fieldObject.get("value");
-                publication.addField(new PublicationField(name, value));
-            }
-            this.publications.add(publication);
-        }
     }
 
     @Override
@@ -79,6 +65,10 @@ public class PublisherSpout extends BaseRichSpout {
             }
 
             collector.emit(new Values(company, value, drop, variation, date));
+            StringBuilder sb = new StringBuilder();
+            sb.append("Publication -> Company: ").append(company).append(" Value ").append(value).append(" Drop ").append(drop)
+                    .append(" Variation ").append(variation).append(" Date ").append(date);
+            System.out.println(sb);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
