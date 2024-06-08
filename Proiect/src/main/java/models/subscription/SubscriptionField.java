@@ -2,11 +2,12 @@ package models.subscription;
 
 import org.json.JSONObject;
 
+import java.io.Serializable;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class SubscriptionField {
+public class SubscriptionField implements Serializable {
     private String fieldName;
     private String operator;
     private Object value;

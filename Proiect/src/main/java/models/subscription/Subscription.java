@@ -1,10 +1,11 @@
 package models.subscription;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Subscription {
+public class Subscription implements Serializable {
     private final List<SubscriptionField> fields;
 
     public Subscription() {

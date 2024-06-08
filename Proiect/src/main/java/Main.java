@@ -1,7 +1,3 @@
-import models.publication.Publication;
-import models.publication.PublicationField;
-import models.subscription.Subscription;
-import models.subscription.SubscriptionField;
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
@@ -11,12 +7,9 @@ import models.subscription.SubscriptionGenerator;
 import storm.BrokerBolt;
 import storm.PublisherSpout;
 import storm.SubscriberBolt;
+import storm.SubscriberSpout;
 import util.Constants;
 import java.util.Arrays;
-import java.util.Date;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -82,22 +75,18 @@ public class Main {
 //        }
 
         // One PublisherSpout instance might mean duplicated values
-        PublisherSpout publisherSpout1 = new PublisherSpout(publications);
+        PublisherSpout publisherSpout = new PublisherSpout(publications);
         PublisherSpout publisherSpout2 = new PublisherSpout(publications);
-        BrokerBolt brokerBolt1 = new BrokerBolt();
+        BrokerBolt brokerBolt = new BrokerBolt();
         BrokerBolt brokerBolt2 = new BrokerBolt();
-        SubscriberBolt subscriberBolt1 = new SubscriberBolt();
+        SubscriberSpout subscriberSpout = new SubscriberSpout(subscriptions);
         SubscriberBolt subscriberBolt2 = new SubscriberBolt();
         SubscriberBolt subscriberBolt3 = new SubscriberBolt();
 
         TopologyBuilder builder = new TopologyBuilder();
-        builder.setSpout("publisher-spout-1", publisherSpout1, 1);
-        builder.setSpout("publisher-spout-2", publisherSpout2, 1);
-        builder.setBolt("broker-bolt-1", brokerBolt1, 2).shuffleGrouping("publisher-spout-1").shuffleGrouping("publisher-spout-2");
-        builder.setBolt("broker-bolt-2", brokerBolt2, 2).shuffleGrouping("publisher-spout-1").shuffleGrouping("publisher-spout-2");
-        builder.setBolt("subscriber-bolt-1", subscriberBolt1, 1).shuffleGrouping("broker-bolt-1").shuffleGrouping("broker-bolt-2");
-        builder.setBolt("subscriber-bolt-2", subscriberBolt2, 1).shuffleGrouping("broker-bolt-1").shuffleGrouping("broker-bolt-2");
-        builder.setBolt("subscriber-bolt-3", subscriberBolt3, 1).shuffleGrouping("broker-bolt-1").shuffleGrouping("broker-bolt-2");
+        builder.setSpout("publisher-spout", publisherSpout, 2);
+        builder.setSpout("subscriber-spout", subscriberSpout, 3);
+        builder.setBolt("broker-bolt", brokerBolt, 3).shuffleGrouping("publisher-spout").shuffleGrouping("subscriber-spout");
 
         // Config
         Config config = new Config();
@@ -109,6 +98,8 @@ public class Main {
 
         config.put(Config.STORM_ZOOKEEPER_SERVERS, Arrays.asList("localhost"));
         config.put(Config.STORM_ZOOKEEPER_PORT, 2181);
+
+        config.registerSerialization(java.util.Date.class);
 
         if (args.length == 0) {
             // Run the topology in a local cluster
