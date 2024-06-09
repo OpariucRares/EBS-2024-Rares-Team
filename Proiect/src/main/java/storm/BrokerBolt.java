@@ -12,17 +12,16 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class BrokerBolt extends BaseRichBolt {
     private OutputCollector collector;
-    private List<Subscription> subscriptions;
+//    private List<Subscription> subscriptions;
+    private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
 
     public BrokerBolt() {
-        this.subscriptions = new ArrayList<>();
+//        this.subscriptions = new ArrayList<>();
+        this.subscriptionMap = new HashMap<>();
     }
 
     @Override
@@ -33,42 +32,31 @@ public class BrokerBolt extends BaseRichBolt {
     @Override
     public void execute(Tuple tuple) {
         String sourceComponent = tuple.getSourceComponent();
-        System.out.println("Input source" + sourceComponent);
-        if (sourceComponent.equals("subscriber-bolt")) {
-            System.out.println("I am subscriber");
-            //logica de preluare a valorilor de la spout-ul subscriber
-            //String subscriberId = input.getStringByField("subscriberId");
-            //SubscriptionDEPRECATED subscriptionDEPRECATED = (SubscriptionDEPRECATED) input.getValueByField("subscription");
-            //doar il adauga
 
-//            String subscriberId = tuple.getStringByField("subscriberId");
+        if (sourceComponent.startsWith("subscriber-bolt")) {
+            System.out.println("subscriber...");
+            String subscriberId = tuple.getStringByField("subscriberId");
+
+            Map<String, String> company = (Map<String, String>) tuple.getValueByField("company");
+            Map<Double, String> value = (Map<Double, String>) tuple.getValueByField("value");
+            Map<Double, String> drop = (Map<Double, String>) tuple.getValueByField("drop");
+            Map<Double, String> variation = (Map<Double, String>) tuple.getValueByField("variation");
+            Map<Date, String> date = (Map<Date, String>) tuple.getValueByField("date");
+
+            // Create a list of maps representing the subscription fields
+            Map<String, Map<Object, String>> subscriptionFields = new HashMap<>();
+            subscriptionFields.put("company", (Map<Object, String>) (Map<?, ?>) company);
+            subscriptionFields.put("value", (Map<Object, String>) (Map<?, ?>) value);
+            subscriptionFields.put("drop", (Map<Object, String>) (Map<?, ?>) drop);
+            subscriptionFields.put("variation", (Map<Object, String>) (Map<?, ?>) variation);
+            subscriptionFields.put("date", (Map<Object, String>) (Map<?, ?>) date);
+
+            subscriptionMap.computeIfAbsent(subscriberId, k -> new ArrayList<>()).add(subscriptionFields);
+            System.out.println(subscriptionMap.toString());
 //            Subscription subscription = (Subscription) tuple.getValueByField("subscription");
-//            // Adăugarea subscripției la lista internă, asociată cu subscriberId
-//            subscriptions.add(subscription);
-        }
-        else if (sourceComponent.equals("publisher-spout")) {
-            System.out.println("I am publisher");
 
-//            Publication publication = (Publication) tuple.getValueByField("publication");
-//            // Verificarea potrivirii publicației cu fiecare subscripție
-//            for (Subscription subscription : subscriptions) {
-//                if (subscription.matches(publication)) {
-//                    // Emiterea notificării către SubscriberBolt corespunzător
-//                    collector.emit(new Values(subscription.getSubscriberId(), publication));
-//                }
-//            }
-
-            //cauti in lista de subscriberi -> gasesti, faci match
-            //String publication = input.getStringByField("publication");
-            //            for (String subscriber : subscribers) {
-            //                for (SubscriptionDEPRECATED subscriptionDEPRECATED : subscriptionsMap.get(subscriber)) {
-            //                    if (subscriptionDEPRECATED.matches(publication)) {
-                                    //TODO: AICI ESTI PE NOTIFICATION STREAM CAND SE FACE MATCH-UL CORECT
-            //                         collector.emit("notification-stream", new Values(subscription.getSubscriberId(), publication));
-            //                    }
-            //                }
-            //            }
-
+        } else if (sourceComponent.startsWith("publisher-spout") || sourceComponent.startsWith("broker-bolt")) {
+            System.out.println("broking...");
             String company = tuple.getStringByField("company");
             double value = tuple.getDoubleByField("value");
             double drop = tuple.getDoubleByField("drop");
@@ -82,18 +70,30 @@ public class BrokerBolt extends BaseRichBolt {
             publication.addField(new PublicationField("variation", variation));
             publication.addField(new PublicationField("date", date));
 
-            for (Subscription subscription : subscriptions) {
-                if (matches(subscription, publication)) {
-                    collector.emit(new Values(publication));
+//            TODO:Matching algorithm
+            synchronized (subscriptionMap) {
+                for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
+                    String subscriberId = entry.getKey();
+                    List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
+                    for (Map<String, Map<Object, String>> subscription : subscriptions) {
+                        if (matches(subscription, publication)) {
+                            collector.emit("notification-stream", new Values(subscriberId, publication));
+                        }
+                    }
                 }
             }
         }
+
     }
 
-    private boolean matches(Subscription subscription, Publication publication) {
-        for (SubscriptionField subField : subscription.getFields()) {
-            for (PublicationField pubField : publication.getFields()) {
-                if (subField.getFieldName().equals(pubField.getFieldName()) && subField.getValue().equals(pubField.getValue().toString())) {
+    private boolean matches(Map<String, Map<Object, String>> subscription, Publication publication) {
+        for (PublicationField pubField : publication.getFields()) {
+            String pubFieldName = pubField.getFieldName();
+            Object pubFieldValue = pubField.getValue();
+            if (subscription.containsKey(pubFieldName)) {
+                Map<Object, String> subFieldMap = subscription.get(pubFieldName);
+                if (subFieldMap.containsKey(pubFieldValue)) {
+                    // Assuming subFieldMap value as the operator for simplicity, adjust as needed
                     return true;
                 }
             }

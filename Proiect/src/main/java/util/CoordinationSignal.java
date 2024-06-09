@@ -1,17 +1,21 @@
 package util;
 
-public class CoordinationSignal {
-    private boolean allSubscriptionsSent = false;
+import java.io.Serializable;
+import java.util.concurrent.CountDownLatch;
 
-    public synchronized void setAllSubscriptionsSent() {
-        allSubscriptionsSent = true;
-        notifyAll();
+public class CoordinationSignal implements Serializable {
+    private static CountDownLatch latch;
+
+    public static void initializeLatch(int numberOfSubscribers) {
+        latch = new CountDownLatch(numberOfSubscribers);
     }
 
-    public synchronized void waitForAllSubscriptions() throws InterruptedException {
-        while (!allSubscriptionsSent) {
-            wait();
-        }
+    public static void setAllSubscriptionsSent() {
+        latch.countDown();
+    }
+
+    public static void waitForAllSubscriptions() throws InterruptedException {
+        latch.await();
     }
 }
 
