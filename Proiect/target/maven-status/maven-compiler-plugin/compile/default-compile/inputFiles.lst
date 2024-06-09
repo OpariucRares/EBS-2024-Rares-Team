@@ -9,6 +9,7 @@
 /home/raul-admin/Desktop/project/EBS-2024-Rares-Team/Proiect/src/main/java/models/subscription/SynchronizedEnumeratedDistribution.java
 /home/raul-admin/Desktop/project/EBS-2024-Rares-Team/Proiect/src/main/java/storm/PublisherSpout.java
 /home/raul-admin/Desktop/project/EBS-2024-Rares-Team/Proiect/src/main/java/models/publication/PublicationField.java
+/home/raul-admin/Desktop/project/EBS-2024-Rares-Team/Proiect/src/main/java/util/CoordinationSignal.java
 /home/raul-admin/Desktop/project/EBS-2024-Rares-Team/Proiect/src/main/java/models/publication/PublicationsWorker.java
 /home/raul-admin/Desktop/project/EBS-2024-Rares-Team/Proiect/src/main/java/models/publication/PublicationGenerator.java
 /home/raul-admin/Desktop/project/EBS-2024-Rares-Team/Proiect/src/main/java/models/publication/Publication.java

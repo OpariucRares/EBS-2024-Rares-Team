@@ -17,11 +17,13 @@ import java.util.*;
 public class BrokerBolt extends BaseRichBolt {
     private OutputCollector collector;
 //    private List<Subscription> subscriptions;
-    private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
+//    private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
+    private final Map<String, List<String>> subscriptionMap;
 
     public BrokerBolt() {
 //        this.subscriptions = new ArrayList<>();
-        this.subscriptionMap = new HashMap<>();
+//        this.subscriptionMap = new HashMap<>();
+        this.subscriptionMap = Collections.synchronizedMap(new HashMap<>());
     }
 
     @Override
@@ -31,32 +33,46 @@ public class BrokerBolt extends BaseRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
-        String sourceComponent = tuple.getSourceComponent();
+        String streamId = tuple.getSourceStreamId();
 
-        if (sourceComponent.startsWith("subscriber-bolt")) {
+        if ("subscription-stream".equals(streamId)) {
             System.out.println("subscriber...");
             String subscriberId = tuple.getStringByField("subscriberId");
+            String subscription = tuple.getStringByField("subscription");
 
-            Map<String, String> company = (Map<String, String>) tuple.getValueByField("company");
-            Map<Double, String> value = (Map<Double, String>) tuple.getValueByField("value");
-            Map<Double, String> drop = (Map<Double, String>) tuple.getValueByField("drop");
-            Map<Double, String> variation = (Map<Double, String>) tuple.getValueByField("variation");
-            Map<Date, String> date = (Map<Date, String>) tuple.getValueByField("date");
+            synchronized (subscriptionMap) {
+                subscriptionMap.computeIfAbsent(subscriberId, k -> new ArrayList<>()).add(subscription);
+                System.out.println("Added to subMap! Current map size: " + subscriptionMap.size());
+                System.out.println("Current subscriptionMap: " + subscriptionMap);
+            }
 
-            // Create a list of maps representing the subscription fields
-            Map<String, Map<Object, String>> subscriptionFields = new HashMap<>();
-            subscriptionFields.put("company", (Map<Object, String>) (Map<?, ?>) company);
-            subscriptionFields.put("value", (Map<Object, String>) (Map<?, ?>) value);
-            subscriptionFields.put("drop", (Map<Object, String>) (Map<?, ?>) drop);
-            subscriptionFields.put("variation", (Map<Object, String>) (Map<?, ?>) variation);
-            subscriptionFields.put("date", (Map<Object, String>) (Map<?, ?>) date);
+//            TODO: Identity routing (this is simple routing)
+            collector.emit("subscription-stream", new Values(subscriberId, subscription));
 
-            subscriptionMap.computeIfAbsent(subscriberId, k -> new ArrayList<>()).add(subscriptionFields);
-            System.out.println(subscriptionMap.toString());
+//            TODO: pre-process subscriptions (now String) so it is easier to match
+//            Map<String, String> company = (Map<String, String>) tuple.getValueByField("company");
+//            Map<Double, String> value = (Map<Double, String>) tuple.getValueByField("value");
+//            Map<Double, String> drop = (Map<Double, String>) tuple.getValueByField("drop");
+//            Map<Double, String> variation = (Map<Double, String>) tuple.getValueByField("variation");
+//            Map<Date, String> date = (Map<Date, String>) tuple.getValueByField("date");
+//
+//            // Create a list of maps representing the subscription fields
+//            Map<String, Map<Object, String>> subscriptionFields = new HashMap<>();
+//            subscriptionFields.put("company", (Map<Object, String>) (Map<?, ?>) company);
+//            subscriptionFields.put("value", (Map<Object, String>) (Map<?, ?>) value);
+//            subscriptionFields.put("drop", (Map<Object, String>) (Map<?, ?>) drop);
+//            subscriptionFields.put("variation", (Map<Object, String>) (Map<?, ?>) variation);
+//            subscriptionFields.put("date", (Map<Object, String>) (Map<?, ?>) date);
+
+//            synchronized (subscriptionMap) {
+//                subscriptionMap.computeIfAbsent(subscriberId, k -> new ArrayList<>()).add(subscriptionFields);
+//                System.out.println("Added to subMap! Current map size: " + subscriptionMap.size());
+//                System.out.println("Current subscriptionMap: " + subscriptionMap);
+//            }
 //            Subscription subscription = (Subscription) tuple.getValueByField("subscription");
 
-        } else if (sourceComponent.startsWith("publisher-spout") || sourceComponent.startsWith("broker-bolt")) {
-            System.out.println("broking...");
+        } else if ("notification-stream".equals(streamId) || "default".equals(streamId)) {
+            System.out.println("Processing publication...");
             String company = tuple.getStringByField("company");
             double value = tuple.getDoubleByField("value");
             double drop = tuple.getDoubleByField("drop");
@@ -71,21 +87,24 @@ public class BrokerBolt extends BaseRichBolt {
             publication.addField(new PublicationField("date", date));
 
 //            TODO:Matching algorithm
-            synchronized (subscriptionMap) {
-                for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
-                    String subscriberId = entry.getKey();
-                    List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
-                    for (Map<String, Map<Object, String>> subscription : subscriptions) {
-                        if (matches(subscription, publication)) {
-                            collector.emit("notification-stream", new Values(subscriberId, publication));
-                        }
-                    }
-                }
-            }
+            System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
+//            synchronized (subscriptionMap) {
+//                System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
+//                for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
+//                    String subscriberId = entry.getKey();
+//                    List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
+//                    for (Map<String, Map<Object, String>> subscription : subscriptions) {
+//                        if (matches(subscription, publication)) {
+//                            collector.emit("notification-stream", new Values(subscriberId, publication));
+//                        }
+//                    }
+//                }
+//            }
         }
 
     }
 
+    // TODO: fix
     private boolean matches(Map<String, Map<Object, String>> subscription, Publication publication) {
         for (PublicationField pubField : publication.getFields()) {
             String pubFieldName = pubField.getFieldName();
@@ -104,5 +123,6 @@ public class BrokerBolt extends BaseRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declareStream("notification-stream", new Fields("subscriberId", "publication"));
+        declarer.declareStream("subscription-stream", new Fields("subscriberId", "subscription"));
     }
 }

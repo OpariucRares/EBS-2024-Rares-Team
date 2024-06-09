@@ -5,6 +5,7 @@ storm/BrokerBolt.class
 models/publication/Publication.class
 models/publication/PublicationField.class
 models/publication/PublicationGenerator.class
+util/CoordinationSignal.class
 workers/publish/PublicationBolt.class
 Main.class
 models/subscription/SubscriptionGenerator.class

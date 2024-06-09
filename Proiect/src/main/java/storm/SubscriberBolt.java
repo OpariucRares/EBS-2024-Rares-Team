@@ -60,8 +60,9 @@ public class SubscriberBolt extends BaseRichBolt {
                         break;
                 }
             }
-            collector.emit("subscription-stream",
-                    new Values(subscriberId, company, value, drop, variation, date));
+            collector.emit("subscription-stream", new Values(subscriberId, subscription.toString()));
+//            collector.emit("subscription-stream",
+//                    new Values(subscriberId, company, value, drop, variation, date));
         }
     }
 
@@ -87,8 +88,8 @@ public class SubscriberBolt extends BaseRichBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         // Nu este necesar să declarăm câmpuri de ieșire dacă acest bolt nu emite tuple mai departe
         // TODO: DE MODIFICAT CUM ESTE SUS
-//        declarer.declareStream("subscription-stream", new Fields("subscriberId", "subscription"));
-        declarer.declareStream("subscription-stream",
-                new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
+        declarer.declareStream("subscription-stream", new Fields("subscriberId", "subscription"));
+//        declarer.declareStream("subscription-stream",
+//                new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
     }
 }

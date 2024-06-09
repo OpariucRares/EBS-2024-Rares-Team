@@ -40,13 +40,23 @@ public class Main {
 
         TopologyBuilder builder = new TopologyBuilder();
 
+//        builder.setSpout("publisher-spout", publisherSpout1, 1);
+//        builder.setBolt("broker-bolt", brokerBolt1, 1)
+//                .shuffleGrouping("publisher-spout")
+//                .fieldsGrouping("subscriber-bolt", "subscription-stream", new Fields("subscriberId"));
+//
+//        builder.setBolt("subscriber-bolt", subscriberBolt1, 1)
+//                .shuffleGrouping("broker-bolt", "notification-stream");
+
         // Adăugarea PublisherSpout la topologie
         builder.setSpout("publisher-spout-1", publisherSpout1, 2);
         // builder.setSpout("publisher-spout2", publisherSpout2, 2);
 
         // Adăugarea BrokerBolt la topologie
         builder.setBolt("broker-bolt-1", brokerBolt1, 3)
-                .shuffleGrouping("publisher-spout-1");
+                .shuffleGrouping("publisher-spout-1")
+                .fieldsGrouping("broker-bolt-2", "subscription-stream", new Fields("subscriberId"))
+                .fieldsGrouping("broker-bolt-3", "subscription-stream", new Fields("subscriberId"));
 
         builder.setBolt("broker-bolt-2", brokerBolt2, 3)
                 .shuffleGrouping("broker-bolt-1", "notification-stream")

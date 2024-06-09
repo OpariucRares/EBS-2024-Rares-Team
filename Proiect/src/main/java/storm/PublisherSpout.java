@@ -35,9 +35,9 @@ public class PublisherSpout extends BaseRichSpout {
 
     @Override
     public void nextTuple() {
-        if (System.currentTimeMillis() - startTime < 10000) {
-            return; // Delay not yet passed, do nothing
-        }
+//        if (System.currentTimeMillis() - startTime < 5000) {
+//            return; // Delay not yet passed, do nothing
+//        }
 
         if (index < publications.size()) {
             Publication publication = publications.get(index++);
@@ -69,10 +69,10 @@ public class PublisherSpout extends BaseRichSpout {
             }
 //            collector.emit(new Values(publication));
             collector.emit(new Values(company, value, drop, variation, date));
-            StringBuilder sb = new StringBuilder();
-            sb.append("Publication -> Company: ").append(company).append(" Value ").append(value).append(" Drop ").append(drop)
-                    .append(" Variation ").append(variation).append(" Date ").append(date);
-            System.out.println(sb);
+//            StringBuilder sb = new StringBuilder();
+//            sb.append("Publication -> Company: ").append(company).append(" Value ").append(value).append(" Drop ").append(drop)
+//                    .append(" Variation ").append(variation).append(" Date ").append(date);
+//            System.out.println(sb);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
