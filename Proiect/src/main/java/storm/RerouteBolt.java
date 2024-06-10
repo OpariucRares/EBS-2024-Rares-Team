@@ -15,16 +15,24 @@ import org.apache.zookeeper.data.Stat;
 
 import java.util.*;
 
-public class BrokerBolt extends BaseRichBolt {
+public class RerouteBolt extends BaseRichBolt {
     private OutputCollector collector;
     private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
     private String brokerId;
     private ZooKeeper zkClient;
     private static final String ZK_BROKER_PATH = "/zookeeper";
+    private boolean isBackupMode = false;
 
-    public BrokerBolt(String brokerId) {
+    public RerouteBolt(String brokerId) {
         this.subscriptionMap = Collections.synchronizedMap(new HashMap<>());
         this.brokerId = brokerId;
+    }
+    public void activateBackupMode() {
+        isBackupMode = true;
+    }
+
+    public void deactivateBackupMode() {
+        isBackupMode = false;
     }
 
     @Override
@@ -32,22 +40,13 @@ public class BrokerBolt extends BaseRichBolt {
         this.collector = collector;
 
         try {
-            zkClient = new ZooKeeper("localhost:2181", 3000, null); // Eliminați watcher-ul din constructor
+            zkClient = new ZooKeeper("localhost:2181", 3000, watchedEvent -> {});
 
             String brokerZnodePath = ZK_BROKER_PATH + "/" + brokerId;
-            Stat stat = zkClient.exists(brokerZnodePath, false);
+            Stat stat = zkClient.exists(brokerZnodePath, true);
             if (stat == null) {
-                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
             }
-
-            zkClient.exists(brokerZnodePath, watchedEvent -> {
-                if (watchedEvent.getType() == Watcher.Event.EventType.NodeDeleted) {
-                    //handleBrokerDown(brokerZnodePath)
-                }
-            });
-
-        } catch (KeeperException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -55,6 +54,8 @@ public class BrokerBolt extends BaseRichBolt {
 
     @Override
     public void execute(Tuple tuple) {
+        if (!isBackupMode) return;
+
         String streamId = tuple.getSourceStreamId();
 
         if ("subscription-stream".equals(streamId)) {
@@ -196,66 +197,27 @@ public class BrokerBolt extends BaseRichBolt {
         declarer.declareStream("subscription-stream",
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
     }
-
-    //TENTATIVA PENTRU CADEREA BROKERILOR
-//    private void handleBrokerDown(String path) {
-//        //    String downBrokerId = path.substring(path.lastIndexOf('/') + 1);
-////
-////        System.out.println("Broker down detected: " + downBrokerId);
-////    List<String> activeBrokers = getActiveBrokers();
-////
-////        for (String message : getMessagesForBroker(downBrokerId)) {
-////        String newBrokerId = chooseNewBroker(activeBrokers);
-////        rerouteMessage(message, downBrokerId, newBrokerId);
-////    }
-////
-////    // 4. Actualizați metadatele sistemului pentru a reflecta schimbarea
-////    updateSystemMetadata(downBrokerId, activeBrokers);
-//    }
-//
-//    private List<String> getActiveBrokers() {
-//        List<String> activeBrokers = new ArrayList<>();
-//        try {
-//            // Obțineți toate znode-urile din calea brokerilor
-//            List<String> brokerNodes = zkClient.getChildren(ZK_BROKER_PATH, false);
-//
-//            // Adăugați toți brokerii activi în listă
-//            for (String brokerNode : brokerNodes) {
-//                String brokerPath = ZK_BROKER_PATH + "/" + brokerNode;
-//                if (zkClient.exists(brokerPath, false) != null) {
-//                    activeBrokers.add(brokerNode);
-//                }
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//        return activeBrokers;
-//    }
-//    private List<String> getMessagesForBroker(String brokerId) {
-//        return new ArrayList<>();
-//    }
-//    private String chooseNewBroker(List<String> activeBrokers) {
-//        if (activeBrokers == null || activeBrokers.isEmpty()) {
-//            throw new IllegalStateException("Nu există brokeri activi disponibili.");
-//        }
-//
-//        Random random = new Random();
-//        int brokerIndex = random.nextInt(activeBrokers.size());
-//        return activeBrokers.get(brokerIndex);
-//    }
-//
-//    private void rerouteMessage(String message, String downBrokerId, String newBrokerId) {
-//        //algorithm
-//    }
-//
-//    private List<String> getTasksForBroker(String brokerId) {
-//        return new ArrayList<>();
-//    }
-//
-//    private void reassignTask(String task, String newBrokerId) {
-//    }
-//
-//    private void updateSystemMetadata(String downBrokerId, List<String> activeBrokers) {
-//        // ...
-//    }
+    public void watchForActivationCommands() {
+        try {
+            // Înregistrați un watcher pentru a primi notificări despre schimbările de date ale znode-ului
+            zkClient.getData(ZK_BROKER_PATH, new Watcher() {
+                @Override
+                public void process(WatchedEvent watchedEvent) {
+                    if (watchedEvent.getType() == Watcher.Event.EventType.NodeDataChanged) {
+                        // Când datele znode-ului se schimbă, preluați noile date
+                        try {
+                            byte[] newData = zkClient.getData(ZK_BROKER_PATH, false, null);
+                            if (new String(newData).equals("activate")) {
+                                isBackupMode = true;
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
