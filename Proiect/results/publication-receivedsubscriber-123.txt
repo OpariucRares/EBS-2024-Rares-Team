@@ -1,0 +1,4 @@
+{(company, "Apple"); (value, 0.76); (drop, 0.59); (variation, 0.96); (date, 25.01.2015)}
+{(company, "Google"); (value, 0.39); (drop, 0.11); (variation, 0.32); (date, 04.02.2019)}
+{(company, "Microsoft"); (value, 0.05); (drop, 0.23); (variation, 0.45); (date, 22.10.2019)}
+{(company, "Google"); (value, 0.36); (drop, 0.16); (variation, 0.4); (date, 10.03.2004)}

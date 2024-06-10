@@ -2,19 +2,15 @@ package storm;
 
 import models.publication.Publication;
 import models.publication.PublicationField;
-import org.apache.storm.StormTimer;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
-import util.CoordinationSignal;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PublisherSpout extends BaseRichSpout {
     private SpoutOutputCollector collector;
@@ -35,10 +31,6 @@ public class PublisherSpout extends BaseRichSpout {
 
     @Override
     public void nextTuple() {
-//        if (System.currentTimeMillis() - startTime < 5000) {
-//            return; // Delay not yet passed, do nothing
-//        }
-
         if (index < publications.size()) {
             Publication publication = publications.get(index++);
 
@@ -67,12 +59,7 @@ public class PublisherSpout extends BaseRichSpout {
                         break;
                 }
             }
-//            collector.emit(new Values(publication));
             collector.emit(new Values(company, value, drop, variation, date));
-//            StringBuilder sb = new StringBuilder();
-//            sb.append("Publication -> Company: ").append(company).append(" Value ").append(value).append(" Drop ").append(drop)
-//                    .append(" Variation ").append(variation).append(" Date ").append(date);
-//            System.out.println(sb);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -90,6 +77,5 @@ public class PublisherSpout extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("company", "value", "drop", "variation", "date"));
-//        declarer.declare(new Fields("publication"));
     }
 }

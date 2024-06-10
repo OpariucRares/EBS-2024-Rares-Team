@@ -1,0 +1,10 @@
+{(variation, =, 0.31)}
+{(date, >, 10.04.2010)}
+{(company, <, "Amazon")}
+{(company, >, "Google")}
+{(company, =, "Microsoft")}
+{(company, =, "Amazon")}
+{(company, =, "Google")}
+{(value, <, 0.63)}
+{(value, >, 0.96)}
+{(drop, <, 0.81)}

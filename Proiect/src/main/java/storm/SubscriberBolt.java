@@ -11,8 +11,10 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
-import util.CoordinationSignal;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 public class SubscriberBolt extends BaseRichBolt {
@@ -29,11 +31,6 @@ public class SubscriberBolt extends BaseRichBolt {
     public void prepare(Map conf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
 
-        // Emiterea subscripțiilor către BrokerBolt la inițializare
-        // TODO: DE FACUT TRANSMITEREA CORECTA. AICI AM TRIMIS CA STRING CA SA VAD CA MERGE
-//        for (Subscription subscription : subscriptions) {
-//            collector.emit("subscription-stream", new Values(subscriberId, subscription.toString()));
-//        }
         for (Subscription subscription : subscriptions) {
             Map<String, String> company = new HashMap<>();
             Map<Double, String> value = new HashMap<>();
@@ -60,36 +57,45 @@ public class SubscriberBolt extends BaseRichBolt {
                         break;
                 }
             }
-            collector.emit("subscription-stream", new Values(subscriberId, subscription.toString()));
-//            collector.emit("subscription-stream",
-//                    new Values(subscriberId, company, value, drop, variation, date));
+            collector.emit("subscription-stream",
+                    new Values(subscriberId, company, value, drop, variation, date));
         }
     }
 
     @Override
     public void execute(Tuple tuple) {
+        String streamId = tuple.getSourceStreamId();
+        if ("notification-stream".equals(streamId)) {
 
-        // Procesarea notificărilor de la BrokerBolt
-        if (tuple.getSourceComponent().equals("broker-bolt")) {
-            // Presupunem că notificarea este primită ca un obiect serializat
-            // și că include subscriberId pentru a verifica destinatarul
-            System.out.println("Am primit ceva de la bolt");
-            String notificationSubscriberId = tuple.getStringByField("subscriberId");
-            // TODO: DE ASTA AVEM NEVOIE DE SUBSCRIBER ID, CA SA STIM CINE A CERUT
-            if (this.subscriberId.equals(notificationSubscriberId)) {
-                // Logica de procesare a notificării
-                // ...
-                System.out.println("eu sunt subscriber bolt cu id-ul" + subscriberId);
+            String company = tuple.getStringByField("company");
+            double value = tuple.getDoubleByField("value");
+            double drop = tuple.getDoubleByField("drop");
+            double variation = tuple.getDoubleByField("variation");
+            Date date = (Date) tuple.getValueByField("date");
+
+            Publication publication = new Publication();
+            publication.addField(new PublicationField("company", company));
+            publication.addField(new PublicationField("value", value));
+            publication.addField(new PublicationField("drop", drop));
+            publication.addField(new PublicationField("variation", variation));
+            publication.addField(new PublicationField("date", date));
+
+            System.out.println(tuple.getStringByField("subscriberId") + "Yey I got a pub ! " + publication.toString());
+            // TODO: add publication to file "publication-received1.txt"
+            try (BufferedWriter writer = new BufferedWriter(
+                    new FileWriter("results/publication-received" + tuple.getStringByField("subscriberId") + ".txt",
+                            true))) {
+                writer.write(publication.toString());
+                writer.newLine();
+            } catch (IOException e) {
+                System.err.println("Error writing to file: " + e.getMessage());
             }
         }
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        // Nu este necesar să declarăm câmpuri de ieșire dacă acest bolt nu emite tuple mai departe
-        // TODO: DE MODIFICAT CUM ESTE SUS
-        declarer.declareStream("subscription-stream", new Fields("subscriberId", "subscription"));
-//        declarer.declareStream("subscription-stream",
-//                new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
+        declarer.declareStream("subscription-stream",
+                new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
     }
 }

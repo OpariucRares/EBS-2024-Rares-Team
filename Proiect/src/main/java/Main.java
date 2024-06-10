@@ -13,40 +13,64 @@ import storm.BrokerBolt;
 import storm.PublisherSpout;
 import storm.SubscriberBolt;
 import util.Constants;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import util.CoordinationSignal;
 
 public class Main {
     public static void main(String[] args) throws Exception {
         Constants constants = new Constants();
 
         SubscriptionGenerator subscriptionGenerator = new SubscriptionGenerator();
-        var subscriptions = subscriptionGenerator.generateSubscriptions(10, constants.fieldFreq, constants.eqFreq);
+
+        var subscriptions1 = subscriptionGenerator.generateSubscriptions(10, constants.fieldFreq, constants.eqFreq);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions1.txt"))) {
+            for (var subscription : subscriptions1) {
+                writer.write(subscription.toString());
+                writer.newLine();
+            }
+            System.out.println("Subscriptions written to subscriptions.txt");
+        } catch (IOException e) {
+            System.err.println("Error writing to file: " + e.getMessage());
+        }
+
+        var subscriptions2 = subscriptionGenerator.generateSubscriptions(10, constants.fieldFreq, constants.eqFreq);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions2.txt"))) {
+            for (var subscription : subscriptions2) {
+                writer.write(subscription.toString());
+                writer.newLine();
+            }
+            System.out.println("Subscriptions written to subscriptions.txt");
+        } catch (IOException e) {
+            System.err.println("Error writing to file: " + e.getMessage());
+        }
 
         PublicationGenerator publicationGenerator = new PublicationGenerator();
         var publications = publicationGenerator.generatePublications(10, constants.pubFieldFreq);
-//        var publications2 = publicationGenerator.generatePublications(100000, constants.pubFieldFreq);
 
-        // One PublisherSpout instance might mean duplicated values
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/publications.txt"))) {
+            for (var publication : publications) {
+                writer.write(publication.toString());
+                writer.newLine();
+            }
+            System.out.println("Publications written to publications.txt");
+        } catch (IOException e) {
+            System.err.println("Error writing to file: " + e.getMessage());
+        }
+
         PublisherSpout publisherSpout1 = new PublisherSpout(publications);
-        PublisherSpout publisherSpout2 = new PublisherSpout(publications);
+//        PublisherSpout publisherSpout2 = new PublisherSpout(publications);
         BrokerBolt brokerBolt1 = new BrokerBolt();
         BrokerBolt brokerBolt2 = new BrokerBolt();
         BrokerBolt brokerBolt3 = new BrokerBolt();
-        SubscriberBolt subscriberBolt1 = new SubscriberBolt("subscriber-123", subscriptions);
-        SubscriberBolt subscriberBolt2 = new SubscriberBolt("subscriber-456", subscriptions);
-        SubscriberBolt subscriberBolt3 = new SubscriberBolt("subscriber-789", subscriptions);
+        SubscriberBolt subscriberBolt1 = new SubscriberBolt("subscriber-123", subscriptions1);
+        SubscriberBolt subscriberBolt2 = new SubscriberBolt("subscriber-456", subscriptions2);
+//        SubscriberBolt subscriberBolt3 = new SubscriberBolt("subscriber-789", subscriptions);
 
         TopologyBuilder builder = new TopologyBuilder();
-
-//        builder.setSpout("publisher-spout", publisherSpout1, 1);
-//        builder.setBolt("broker-bolt", brokerBolt1, 1)
-//                .shuffleGrouping("publisher-spout")
-//                .fieldsGrouping("subscriber-bolt", "subscription-stream", new Fields("subscriberId"));
-//
-//        builder.setBolt("subscriber-bolt", subscriberBolt1, 1)
-//                .shuffleGrouping("broker-bolt", "notification-stream");
 
         // Adăugarea PublisherSpout la topologie
         builder.setSpout("publisher-spout-1", publisherSpout1, 2);
