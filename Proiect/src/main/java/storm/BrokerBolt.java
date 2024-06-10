@@ -15,9 +15,11 @@ import java.util.*;
 public class BrokerBolt extends BaseRichBolt {
     private OutputCollector collector;
     private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
+    private String brokerId;
 
-    public BrokerBolt() {
+    public BrokerBolt(String brokerId) {
         this.subscriptionMap = Collections.synchronizedMap(new HashMap<>());
+        this.brokerId = brokerId;
     }
 
     @Override
@@ -53,7 +55,8 @@ public class BrokerBolt extends BaseRichBolt {
                 System.out.println("Current subscriptionMap: " + subscriptionMap);
             }
 
-            collector.emit("subscription-stream", new Values(subscriberId, company, value, drop, variation, date));
+            collector.emit("subscription-stream", new Values(brokerId, company, value, drop, variation, date));
+
 
         } else if ("notification-stream".equals(streamId) || "default".equals(streamId)) {
             System.out.println("Processing publication...");

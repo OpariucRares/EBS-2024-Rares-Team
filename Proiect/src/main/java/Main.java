@@ -63,11 +63,11 @@ public class Main {
 
         PublisherSpout publisherSpout1 = new PublisherSpout(publications);
 //        PublisherSpout publisherSpout2 = new PublisherSpout(publications);
-        BrokerBolt brokerBolt1 = new BrokerBolt();
-        BrokerBolt brokerBolt2 = new BrokerBolt();
-        BrokerBolt brokerBolt3 = new BrokerBolt();
-        SubscriberBolt subscriberBolt1 = new SubscriberBolt("subscriber-123", subscriptions1);
-        SubscriberBolt subscriberBolt2 = new SubscriberBolt("subscriber-456", subscriptions2);
+        BrokerBolt brokerBolt1 = new BrokerBolt("broker1");
+        BrokerBolt brokerBolt2 = new BrokerBolt("broker2");
+        BrokerBolt brokerBolt3 = new BrokerBolt("broker3");
+        SubscriberBolt subscriberBolt1 = new SubscriberBolt("subscriber1", subscriptions1);
+        SubscriberBolt subscriberBolt2 = new SubscriberBolt("subscriber2", subscriptions2);
 //        SubscriberBolt subscriberBolt3 = new SubscriberBolt("subscriber-789", subscriptions);
 
         TopologyBuilder builder = new TopologyBuilder();
