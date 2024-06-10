@@ -1,7 +1,10 @@
 package storm;
 
-import models.publication.Publication;
-import models.publication.PublicationField;
+// import models.publication.Publication;
+import com.google.protobuf.InvalidProtocolBufferException;
+// import models.publication.PublicationField;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -9,6 +12,7 @@ import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
+import models.publication.PublicationOuterClass.*;
 
 import java.util.*;
 
@@ -60,63 +64,99 @@ public class BrokerBolt extends BaseRichBolt {
 
         } else if ("notification-stream".equals(streamId) || "default".equals(streamId)) {
             System.out.println("Processing publication...");
-            String company = tuple.getStringByField("company");
-            double value = tuple.getDoubleByField("value");
-            double drop = tuple.getDoubleByField("drop");
-            double variation = tuple.getDoubleByField("variation");
-            Date date = (Date) tuple.getValueByField("date");
+            byte[] serializedPublication = tuple.getBinaryByField("publication");
+            try {
 
-            Publication publication = new Publication();
-            publication.addField(new PublicationField("company", company));
-            publication.addField(new PublicationField("value", value));
-            publication.addField(new PublicationField("drop", drop));
-            publication.addField(new PublicationField("variation", variation));
-            publication.addField(new PublicationField("date", date));
+                String company = null;
+                double value = 0.0;
+                double drop = 0.0;
+                double variation = 0.0;
+                Date date = null;
 
-            System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
-            synchronized (subscriptionMap) {
-                for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
-                    boolean isFound = false;
-                    String subscriberId = entry.getKey();
-                    List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
-                    for (Map<String, Map<Object, String>> subscription : subscriptions) {
-                        if (matches(subscription, publication)) {
-                            collector.emit("notification-stream",
-                                    new Values(subscriberId, company, value, drop, variation, date));
-                            isFound = true;
+                Publication publication = Publication.parseFrom(serializedPublication);
+                // Process the deserialized publication
+                for (PublicationField field : publication.getFieldsList()) {
+                    System.out.println("Field Name: " + field.getFieldName());
+                    switch (field.getValueCase()) {
+                        case COMPANYFIELD:
+                            System.out.println("Company Value: " + field.getCompanyField());
+                            company = field.getCompanyField();
+                            break;
+                        case VALUEFIELD:
+                            System.out.println("Value Value: " + field.getValueField());
+                            value = field.getValueField();
+                            break;
+                        case DROPFIELD:
+                            System.out.println("Drop Value: " + field.getDropField());
+                            drop = field.getDropField();
+                            break;
+                        case VARIATIONFIELD:
+                            System.out.println("Variation Value: " + field.getVariationField());
+                            variation = field.getVariationField();
+                            break;
+                        case DATEFIELD:
+                            System.out.println("Date Value: " + field.getDateField());
+                            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                            date = dateFormat.parse(field.getDateField());
+                            break;
+                        case VALUE_NOT_SET:
+                            System.out.println("Value not set");
+                            break;
+                    }
+                }
+
+                System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
+                synchronized (subscriptionMap) {
+                    for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
+                        boolean isFound = false;
+                        String subscriberId = entry.getKey();
+                        List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
+                        for (Map<String, Map<Object, String>> subscription : subscriptions) {
+                            if (matches(subscription, publication)) {
+                                collector.emit("notification-stream",
+                                        new Values(subscriberId, company, value, drop, variation, date));
+                                isFound = true;
+                                break;
+                            }
+                        }
+                        if (isFound) {
                             break;
                         }
                     }
-                    if (isFound) {
-                        break;
-                    }
                 }
+            } catch (InvalidProtocolBufferException e) {
+                e.printStackTrace();
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
             }
         }
 
     }
 
-    private boolean matches(Map<String, Map<Object, String>> subscription, Publication publication) {
-        for (PublicationField pubField : publication.getFields()) {
+    private boolean matches(Map<String, Map<Object, String>> subscription, Publication publication) throws ParseException {
+        for (PublicationField pubField : publication.getFieldsList()) {
             String pubFieldName = pubField.getFieldName();
-            Object pubFieldValue = pubField.getValue();
+//            Object pubFieldValue = pubField.getValue();
 
             Map<Object, String> subFieldMap = subscription.get(pubFieldName);
             if (!subFieldMap.isEmpty()) {
                 for (Map.Entry<Object, String> entry : subFieldMap.entrySet()) {
                     Object subFieldValue = entry.getKey();
                     String operator = entry.getValue();
-
-                    switch (pubFieldName) {
-                        case "company":
-                            return compareStrings((String) pubFieldValue, (String) subFieldValue, operator);
+                    switch (pubField.getValueCase()) {
+                        case COMPANYFIELD:
+                            return compareStrings(pubField.getCompanyField(), (String) subFieldValue, operator);
                         // TODO: verify date
-                        case "date":
-                            return compareDates((Date) pubFieldValue, (Date) subFieldValue, operator);
-                        case "value":
-                        case "drop":
-                        case "variation":
-                            return compareDoubles((Double) pubFieldValue, (Double) subFieldValue, operator);
+                        case DATEFIELD:
+                            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                            Date pubDate = dateFormat.parse(pubField.getDateField());
+                            return compareDates(pubDate,  (Date) subFieldValue, operator);
+                        case VALUEFIELD:
+                            return compareDoubles(pubField.getValueField(), (Double) subFieldValue, operator);
+                        case DROPFIELD:
+                            return compareDoubles(pubField.getDropField(), (Double) subFieldValue, operator);
+                        case VARIATIONFIELD:
+                            return compareDoubles(pubField.getVariationField(), (Double) subFieldValue, operator);
                         default:
                             throw new IllegalArgumentException("Unsupported field name: " + pubFieldName);
                     }
@@ -169,5 +209,7 @@ public class BrokerBolt extends BaseRichBolt {
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
         declarer.declareStream("subscription-stream",
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
+        declarer.declareStream("default",
+                new Fields("publication"));
     }
 }

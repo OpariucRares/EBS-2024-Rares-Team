@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package models.publication;
+
+message PublicationField {
+    string fieldName = 1;
+    oneof value {
+        string companyField = 2;
+        double valueField = 3;
+        double dropField = 4;
+        double variationField = 5;
+        string dateField = 6;
+    }
+}
+
+message Publication {
+    repeated PublicationField fields = 1;
+}

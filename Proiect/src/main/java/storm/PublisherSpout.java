@@ -1,6 +1,6 @@
 package storm;
 
-import models.publication.Publication;
+// import models.publication.Publication;
 import models.publication.PublicationField;
 import org.apache.storm.spout.SpoutOutputCollector;
 import org.apache.storm.task.TopologyContext;
@@ -11,6 +11,7 @@ import org.apache.storm.tuple.Values;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import models.publication.PublicationOuterClass.*;
 
 public class PublisherSpout extends BaseRichSpout {
     private SpoutOutputCollector collector;
@@ -33,33 +34,8 @@ public class PublisherSpout extends BaseRichSpout {
     public void nextTuple() {
         if (index < publications.size()) {
             Publication publication = publications.get(index++);
-
-            String company = null;
-            double value = 0.0;
-            double drop = 0.0;
-            double variation = 0.0;
-            Date date = null;
-
-            for (PublicationField field : publication.getFields()) {
-                switch (field.getFieldName()) {
-                    case "company":
-                        company = (String) field.getValue();
-                        break;
-                    case "value":
-                        value = (double) field.getValue();
-                        break;
-                    case "drop":
-                        drop = (double) field.getValue();
-                        break;
-                    case "variation":
-                        variation = (double) field.getValue();
-                        break;
-                    case "date":
-                        date = (Date) field.getValue();
-                        break;
-                }
-            }
-            collector.emit(new Values(company, value, drop, variation, date));
+            byte[] serializedPublication = publication.toByteArray();
+            collector.emit(new Values(serializedPublication));
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -76,6 +52,6 @@ public class PublisherSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("company", "value", "drop", "variation", "date"));
+        declarer.declare(new Fields("publication"));
     }
 }
