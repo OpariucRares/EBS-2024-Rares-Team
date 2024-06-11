@@ -35,6 +35,11 @@
             <version>3.21.0</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+            <version>3.8.4</version>
+        </dependency>
     </dependencies>
     <build>
         <pluginManagement>
