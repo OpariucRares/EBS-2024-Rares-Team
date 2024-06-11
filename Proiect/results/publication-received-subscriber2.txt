@@ -1,6 +1,0 @@
-{(company, "Google"); (value, 0.3); (drop, 0.15); (variation, 0.9); (date, 27.03.2021)}
-{(company, "Microsoft"); (value, 0.17); (drop, 0.47); (variation, 0.61); (date, 17.01.2002)}
-{(company, "Apple"); (value, 0.61); (drop, 0.95); (variation, 0.52); (date, 25.05.2007)}
-{(company, "Google"); (value, 0.04); (drop, 0.84); (variation, 0.92); (date, 24.02.2004)}
-{(company, "Microsoft"); (value, 1.0); (drop, 0.26); (variation, 0.9); (date, 17.04.2011)}
-{(company, "Google"); (value, 0.89); (drop, 0.09); (variation, 0.74); (date, 30.10.2004)}

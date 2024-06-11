@@ -183,7 +183,7 @@ public class BrokerBolt extends BaseRichBolt {
                                 collector.emit("notification-stream",
                                         new Values(subscriberId, company, value, drop, variation, date, emissionTime));
                                 matchedPublicationsNumber++;
-                            isFound = true;
+                                isFound = true;
                                 break;
                             }
                         }
@@ -210,19 +210,27 @@ public class BrokerBolt extends BaseRichBolt {
 
                     switch (pubFieldName) {
                         case "company":
-                            return compareStrings((String) pubFieldValue, (String) subFieldValue, operator);
-                        // TODO: verify date
+                            if (!compareStrings((String) pubFieldValue, (String) subFieldValue, operator)) {
+                                return false;
+                            }
+                            break;
                         case "date":
-                            return compareDates((Date) pubFieldValue, (Date) subFieldValue, operator);
+                            if (!compareDates((Date) pubFieldValue, (Date) subFieldValue, operator)) {
+                                return false;
+                            }
+                            break;
                         case "value":
                         case "drop":
                         case "variation":
-                            return compareDoubles((Double) pubFieldValue, (Double) subFieldValue, operator);
+                            if (!compareDoubles((Double) pubFieldValue, (Double) subFieldValue, operator)) {
+                                return false;
+                            }
+                            break;
                         default:
                             throw new IllegalArgumentException("Unsupported field name: " + pubFieldName);
                     }
                 }
-                return false;
+                return true;
             }
 
         }

@@ -43,13 +43,13 @@ public class PublisherSpout extends BaseRichSpout {
             sentPublicationsNumber++;
             System.out.println("Publications emitted: " + sentPublicationsNumber);
             try {
-                Thread.sleep(1);
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         } else {
             try {
-                Thread.sleep(1);  // Sleep briefly when all tuples have been emitted
+                Thread.sleep(1000);  // Sleep briefly when all tuples have been emitted
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

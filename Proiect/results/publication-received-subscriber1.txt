@@ -1,2 +1,0 @@
-{(company, "Google"); (value, 0.3); (drop, 0.15); (variation, 0.9); (date, 27.03.2021)}
-{(company, "Microsoft"); (value, 0.17); (drop, 0.47); (variation, 0.61); (date, 17.01.2002)}

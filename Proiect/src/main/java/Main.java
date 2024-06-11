@@ -26,7 +26,7 @@ public class Main {
 
         SubscriptionGenerator subscriptionGenerator = new SubscriptionGenerator();
 
-        var subscriptions1 = subscriptionGenerator.generateSubscriptions(5000, constants.fieldFreq, constants.eqFreq);
+        var subscriptions1 = subscriptionGenerator.generateSubscriptions(2, constants.fieldFreq, constants.eqFreq);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions1.txt"))) {
             for (var subscription : subscriptions1) {
                 writer.write(subscription.toString());
@@ -37,7 +37,7 @@ public class Main {
             System.err.println("Error writing to file: " + e.getMessage());
         }
 
-        var subscriptions2 = subscriptionGenerator.generateSubscriptions(5000, constants.fieldFreq, constants.eqFreq);
+        var subscriptions2 = subscriptionGenerator.generateSubscriptions(2, constants.fieldFreq, constants.eqFreq);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions2.txt"))) {
             for (var subscription : subscriptions2) {
                 writer.write(subscription.toString());
@@ -49,7 +49,7 @@ public class Main {
         }
 
         PublicationGenerator publicationGenerator = new PublicationGenerator();
-        var publications = publicationGenerator.generatePublications(300, constants.pubFieldFreq);
+        var publications = publicationGenerator.generatePublications(10, constants.pubFieldFreq);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/publications.txt"))) {
             for (var publication : publications) {
@@ -131,8 +131,8 @@ public class Main {
             cluster.submitTopology("word-count-topology-one", config, builder.createTopology());
 
             // Keep the topology running for some time (e.g., 60 seconds) for demonstration purposes
-//            Thread.sleep(60000 * 3); // multiplied by the number of minutes wanted
-            Thread.sleep(6000 * 3);
+            Thread.sleep(60000 * 3); // multiplied by the number of minutes wanted
+//            Thread.sleep(20000 * 3);
 
             // Shutdown the local cluster
             cluster.shutdown();
