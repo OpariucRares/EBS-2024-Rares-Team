@@ -3,31 +3,28 @@ package models.publication;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+
+import models.publication.PublicationOuterClass.Publication;
 
 public class PublicationGenerator {
-    public List<Publication> generatePublications(
-            int count, Map<String, Double> fieldFreq){
+    public List<Publication> generatePublications(int count, Map<String, Double> fieldFreq) {
 
-        List<Publication> publications = new ArrayList<>();
-
-        int publicationLine = 0;
-
+        List<Publication.Builder> publicationBuilders = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            publications.add(new Publication());
+            publicationBuilders.add(Publication.newBuilder());
         }
 
-        for (var fieldFreqEntry: fieldFreq.entrySet()) {
-            String fieldName = fieldFreqEntry.getKey();
-            Double freq = fieldFreqEntry.getValue();
+        for (Map.Entry<String, Double> entry : fieldFreq.entrySet()) {
+            String fieldName = entry.getKey();
+            Double freq = entry.getValue();
             int fieldCount = (int) (count * freq);
 
-            new PublicationsWorker(
-                    count, publications, fieldName, publicationLine, fieldCount
-            ).run();
+            new PublicationsWorker(publicationBuilders, fieldName, fieldCount).run();
+        }
 
-            publicationLine += fieldCount;
+        List<Publication> publications = new ArrayList<>();
+        for (Publication.Builder builder : publicationBuilders) {
+            publications.add(builder.build());
         }
 
         return publications;

@@ -49,7 +49,7 @@ public class Main {
         }
 
         PublicationGenerator publicationGenerator = new PublicationGenerator();
-        var publications = publicationGenerator.generatePublications(10000, constants.pubFieldFreq);
+        var publications = publicationGenerator.generatePublications(300, constants.pubFieldFreq);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/publications.txt"))) {
             for (var publication : publications) {
@@ -63,6 +63,7 @@ public class Main {
 
         PublisherSpout publisherSpout1 = new PublisherSpout(publications);
 //        PublisherSpout publisherSpout2 = new PublisherSpout(publications);
+        BrokerBolt brokerBoltDecode = new BrokerBolt("broker-decode");
         BrokerBolt brokerBolt1 = new BrokerBolt("broker1");
         BrokerBolt brokerBolt2 = new BrokerBolt("broker2");
         BrokerBolt brokerBolt3 = new BrokerBolt("broker3");
@@ -77,8 +78,12 @@ public class Main {
         // builder.setSpout("publisher-spout2", publisherSpout2, 2);
 
         // Adăugarea BrokerBolt la topologie
+        builder.setBolt("broker-bolt-decode", brokerBoltDecode, 3)
+                        .shuffleGrouping("publisher-spout-1");
+                        // .fieldsGrouping("broker-bolt-1", "decoded-stream", new Fields("company", "value", "drop", "variation", "date"));
+
         builder.setBolt("broker-bolt-1", brokerBolt1, 3)
-                .shuffleGrouping("publisher-spout-1")
+                .shuffleGrouping("broker-bolt-decode", "decoded-stream")
                 .fieldsGrouping("broker-bolt-2", "subscription-stream", new Fields("subscriberId"))
                 .fieldsGrouping("broker-bolt-3", "subscription-stream", new Fields("subscriberId"));
 

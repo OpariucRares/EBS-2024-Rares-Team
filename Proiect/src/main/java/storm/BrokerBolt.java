@@ -1,7 +1,10 @@
 package storm;
 
-import models.publication.Publication;
-import models.publication.PublicationField;
+// import models.publication.Publication;
+import com.google.protobuf.InvalidProtocolBufferException;
+// import models.publication.PublicationField;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
@@ -10,8 +13,10 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-import org.apache.zookeeper.*;
-import org.apache.zookeeper.data.Stat;
+import models.publication.PublicationOuterClass.*;
+
+//import org.apache.zookeeper.*;
+//import org.apache.zookeeper.data.Stat;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -22,7 +27,8 @@ public class BrokerBolt extends BaseRichBolt {
     private OutputCollector collector;
     private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
     private String brokerId;
-    private ZooKeeper zkClient;
+
+    //private ZooKeeper zkClient;
     private static final String ZK_BROKER_PATH = "/zookeeper";
     private int receivedPublicationsNumber;
     private int matchedPublicationsNumber;
@@ -38,26 +44,26 @@ public class BrokerBolt extends BaseRichBolt {
     public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
         
-        try {
-            zkClient = new ZooKeeper("localhost:2181", 3000, null); // Eliminați watcher-ul din constructor
-
-            String brokerZnodePath = ZK_BROKER_PATH + "/" + brokerId;
-            Stat stat = zkClient.exists(brokerZnodePath, false);
-            if (stat == null) {
-                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            }
-
-            zkClient.exists(brokerZnodePath, watchedEvent -> {
-                if (watchedEvent.getType() == Watcher.Event.EventType.NodeDeleted) {
-                    //handleBrokerDown(brokerZnodePath)
-                }
-            });
-
-        } catch (KeeperException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            zkClient = new ZooKeeper("localhost:2181", 3000, null); // Eliminați watcher-ul din constructor
+//
+//            String brokerZnodePath = ZK_BROKER_PATH + "/" + brokerId;
+//            Stat stat = zkClient.exists(brokerZnodePath, false);
+//            if (stat == null) {
+//                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+//            }
+//
+//            zkClient.exists(brokerZnodePath, watchedEvent -> {
+//                if (watchedEvent.getType() == Watcher.Event.EventType.NodeDeleted) {
+//                    //handleBrokerDown(brokerZnodePath)
+//                }
+//            });
+//
+//        } catch (KeeperException e) {
+//            e.printStackTrace();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override
@@ -91,42 +97,99 @@ public class BrokerBolt extends BaseRichBolt {
             collector.emit("subscription-stream", new Values(brokerId, company, value, drop, variation, date));
 
 
-        } else if ("notification-stream".equals(streamId) || "default".equals(streamId)) {
+        } else if ("notification-stream".equals(streamId) || "default".equals(streamId) || "decoded-stream".equals(streamId)) {
             receivedPublicationsNumber++;
             System.out.println("Processing publication...");
-
             long emissionTime = tuple.getLongByField("emissionTime");
+            if("default".equals(streamId)) {
+                byte[] serializedPublication = tuple.getBinaryByField("publication");
+                try {
 
-            String company = tuple.getStringByField("company");
-            double value = tuple.getDoubleByField("value");
-            double drop = tuple.getDoubleByField("drop");
-            double variation = tuple.getDoubleByField("variation");
-            Date date = (Date) tuple.getValueByField("date");
+                    String company = null;
+                    double value = 0.0;
+                    double drop = 0.0;
+                    double variation = 0.0;
+                    Date date = null;
 
-            Publication publication = new Publication();
-            publication.addField(new PublicationField("company", company));
-            publication.addField(new PublicationField("value", value));
-            publication.addField(new PublicationField("drop", drop));
-            publication.addField(new PublicationField("variation", variation));
-            publication.addField(new PublicationField("date", date));
-
-//            System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
-            synchronized (subscriptionMap) {
-                for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
-                    boolean isFound = false;
-                    String subscriberId = entry.getKey();
-                    List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
-                    for (Map<String, Map<Object, String>> subscription : subscriptions) {
-                        if (matches(subscription, publication)) {
-                            collector.emit("notification-stream",
-                                    new Values(subscriberId, company, value, drop, variation, date, emissionTime));
-                            matchedPublicationsNumber++;
-                            isFound = true;
-                            break;
+                    Publication publication = Publication.parseFrom(serializedPublication);
+                    // Process the deserialized publication
+                    for (PublicationField field : publication.getFieldsList()) {
+                        System.out.println("Field Name: " + field.getFieldName());
+                        switch (field.getValueCase()) {
+                            case COMPANYFIELD:
+                                System.out.println("Company Value: " + field.getCompanyField());
+                                company = field.getCompanyField();
+                                break;
+                            case VALUEFIELD:
+                                System.out.println("Value Value: " + field.getValueField());
+                                value = field.getValueField();
+                                break;
+                            case DROPFIELD:
+                                System.out.println("Drop Value: " + field.getDropField());
+                                drop = field.getDropField();
+                                break;
+                            case VARIATIONFIELD:
+                                System.out.println("Variation Value: " + field.getVariationField());
+                                variation = field.getVariationField();
+                                break;
+                            case DATEFIELD:
+                                System.out.println("Date Value: " + field.getDateField());
+                                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                date = dateFormat.parse(field.getDateField());
+                                break;
+                            case VALUE_NOT_SET:
+                                System.out.println("Value not set");
+                                break;
                         }
                     }
-                    if (isFound) {
-                        break;
+
+                    collector.emit("decoded-stream",
+                                new Values(company, value, drop, variation, date, emissionTime));
+
+                    } catch (InvalidProtocolBufferException e) {
+                        e.printStackTrace();
+                    } catch (ParseException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            else {
+
+    
+
+
+            String company = tuple.getStringByField("company");
+                double value = tuple.getDoubleByField("value");
+                double drop = tuple.getDoubleByField("drop");
+                double variation = tuple.getDoubleByField("variation");
+                Date date = (Date) tuple.getValueByField("date");
+
+                Map<String, Object> publicationFields = Map.of(
+                        "company", company,
+                        "value", value,
+                        "drop", drop,
+                        "variation", variation,
+                        "date", date
+                );
+
+
+    //            System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
+                synchronized (subscriptionMap) {
+                    for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
+                        boolean isFound = false;
+                        String subscriberId = entry.getKey();
+                        List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
+                        for (Map<String, Map<Object, String>> subscription : subscriptions) {
+                            if (matches(subscription, publicationFields)) {
+                                collector.emit("notification-stream",
+                                        new Values(subscriberId, company, value, drop, variation, date, emissionTime));
+                                matchedPublicationsNumber++;
+                            isFound = true;
+                                break;
+                            }
+                        }
+                        if (isFound) {
+                            break;
+                        }
                     }
                 }
             }
@@ -134,10 +197,10 @@ public class BrokerBolt extends BaseRichBolt {
 
     }
 
-    private boolean matches(Map<String, Map<Object, String>> subscription, Publication publication) {
-        for (PublicationField pubField : publication.getFields()) {
-            String pubFieldName = pubField.getFieldName();
-            Object pubFieldValue = pubField.getValue();
+    private boolean matches(Map<String, Map<Object, String>> subscription, Map<String, Object> publication) {
+        for (Map.Entry<String, Object> pubEntry : publication.entrySet()) {
+            String pubFieldName = pubEntry.getKey();
+            Object pubFieldValue = pubEntry.getValue();
 
             Map<Object, String> subFieldMap = subscription.get(pubFieldName);
             if (!subFieldMap.isEmpty()) {
@@ -207,6 +270,8 @@ public class BrokerBolt extends BaseRichBolt {
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date", "emissionTime"));
         declarer.declareStream("subscription-stream",
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
+        declarer.declareStream("decoded-stream",
+                new Fields("company", "value", "drop", "variation", "date", "emissionTime"));
     }
 
     @Override
