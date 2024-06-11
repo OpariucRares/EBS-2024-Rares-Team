@@ -21,6 +21,7 @@ public class BrokerBolt extends BaseRichBolt {
     private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
     private String brokerId;
 
+
     public BrokerBolt(String brokerId) {
         this.subscriptionMap = Collections.synchronizedMap(new HashMap<>());
         this.brokerId = brokerId;
@@ -62,48 +63,75 @@ public class BrokerBolt extends BaseRichBolt {
             collector.emit("subscription-stream", new Values(brokerId, company, value, drop, variation, date));
 
 
-        } else if ("notification-stream".equals(streamId) || "default".equals(streamId)) {
+        } else if ("notification-stream".equals(streamId) || "default".equals(streamId) || "decoded-stream".equals(streamId)) {
             System.out.println("Processing publication...");
-            byte[] serializedPublication = tuple.getBinaryByField("publication");
-            try {
+            if("default".equals(streamId)) {
+                byte[] serializedPublication = tuple.getBinaryByField("publication");
+                try {
 
-                String company = null;
-                double value = 0.0;
-                double drop = 0.0;
-                double variation = 0.0;
-                Date date = null;
+                    String company = null;
+                    double value = 0.0;
+                    double drop = 0.0;
+                    double variation = 0.0;
+                    Date date = null;
 
-                Publication publication = Publication.parseFrom(serializedPublication);
-                // Process the deserialized publication
-                for (PublicationField field : publication.getFieldsList()) {
-                    System.out.println("Field Name: " + field.getFieldName());
-                    switch (field.getValueCase()) {
-                        case COMPANYFIELD:
-                            System.out.println("Company Value: " + field.getCompanyField());
-                            company = field.getCompanyField();
-                            break;
-                        case VALUEFIELD:
-                            System.out.println("Value Value: " + field.getValueField());
-                            value = field.getValueField();
-                            break;
-                        case DROPFIELD:
-                            System.out.println("Drop Value: " + field.getDropField());
-                            drop = field.getDropField();
-                            break;
-                        case VARIATIONFIELD:
-                            System.out.println("Variation Value: " + field.getVariationField());
-                            variation = field.getVariationField();
-                            break;
-                        case DATEFIELD:
-                            System.out.println("Date Value: " + field.getDateField());
-                            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                            date = dateFormat.parse(field.getDateField());
-                            break;
-                        case VALUE_NOT_SET:
-                            System.out.println("Value not set");
-                            break;
+                    Publication publication = Publication.parseFrom(serializedPublication);
+                    // Process the deserialized publication
+                    for (PublicationField field : publication.getFieldsList()) {
+                        System.out.println("Field Name: " + field.getFieldName());
+                        switch (field.getValueCase()) {
+                            case COMPANYFIELD:
+                                System.out.println("Company Value: " + field.getCompanyField());
+                                company = field.getCompanyField();
+                                break;
+                            case VALUEFIELD:
+                                System.out.println("Value Value: " + field.getValueField());
+                                value = field.getValueField();
+                                break;
+                            case DROPFIELD:
+                                System.out.println("Drop Value: " + field.getDropField());
+                                drop = field.getDropField();
+                                break;
+                            case VARIATIONFIELD:
+                                System.out.println("Variation Value: " + field.getVariationField());
+                                variation = field.getVariationField();
+                                break;
+                            case DATEFIELD:
+                                System.out.println("Date Value: " + field.getDateField());
+                                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                date = dateFormat.parse(field.getDateField());
+                                break;
+                            case VALUE_NOT_SET:
+                                System.out.println("Value not set");
+                                break;
+                        }
+                    }
+
+                        collector.emit("decoded-stream",
+                                new Values(company, value, drop, variation, date));
+
+                    } catch (InvalidProtocolBufferException e) {
+                        e.printStackTrace();
+                    } catch (ParseException e) {
+                        throw new RuntimeException(e);
                     }
                 }
+            else {
+
+                String company = tuple.getStringByField("company");
+                double value = tuple.getDoubleByField("value");
+                double drop = tuple.getDoubleByField("drop");
+                double variation = tuple.getDoubleByField("variation");
+                Date date = (Date) tuple.getValueByField("date");
+
+                Map<String, Object> publicationFields = Map.of(
+                        "company", company,
+                        "value", value,
+                        "drop", drop,
+                        "variation", variation,
+                        "date", date
+                );
+
 
                 System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
                 synchronized (subscriptionMap) {
@@ -112,7 +140,7 @@ public class BrokerBolt extends BaseRichBolt {
                         String subscriberId = entry.getKey();
                         List<Map<String, Map<Object, String>>> subscriptions = entry.getValue();
                         for (Map<String, Map<Object, String>> subscription : subscriptions) {
-                            if (matches(subscription, publication)) {
+                            if (matches(subscription, publicationFields)) {
                                 collector.emit("notification-stream",
                                         new Values(subscriberId, company, value, drop, variation, date));
                                 isFound = true;
@@ -124,39 +152,32 @@ public class BrokerBolt extends BaseRichBolt {
                         }
                     }
                 }
-            } catch (InvalidProtocolBufferException e) {
-                e.printStackTrace();
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
             }
         }
 
     }
 
-    private boolean matches(Map<String, Map<Object, String>> subscription, Publication publication) throws ParseException {
-        for (PublicationField pubField : publication.getFieldsList()) {
-            String pubFieldName = pubField.getFieldName();
-//            Object pubFieldValue = pubField.getValue();
+    private boolean matches(Map<String, Map<Object, String>> subscription, Map<String, Object> publication) {
+        for (Map.Entry<String, Object> pubEntry : publication.entrySet()) {
+            String pubFieldName = pubEntry.getKey();
+            Object pubFieldValue = pubEntry.getValue();
 
             Map<Object, String> subFieldMap = subscription.get(pubFieldName);
             if (!subFieldMap.isEmpty()) {
                 for (Map.Entry<Object, String> entry : subFieldMap.entrySet()) {
                     Object subFieldValue = entry.getKey();
                     String operator = entry.getValue();
-                    switch (pubField.getValueCase()) {
-                        case COMPANYFIELD:
-                            return compareStrings(pubField.getCompanyField(), (String) subFieldValue, operator);
+
+                    switch (pubFieldName) {
+                        case "company":
+                            return compareStrings((String) pubFieldValue, (String) subFieldValue, operator);
                         // TODO: verify date
-                        case DATEFIELD:
-                            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                            Date pubDate = dateFormat.parse(pubField.getDateField());
-                            return compareDates(pubDate,  (Date) subFieldValue, operator);
-                        case VALUEFIELD:
-                            return compareDoubles(pubField.getValueField(), (Double) subFieldValue, operator);
-                        case DROPFIELD:
-                            return compareDoubles(pubField.getDropField(), (Double) subFieldValue, operator);
-                        case VARIATIONFIELD:
-                            return compareDoubles(pubField.getVariationField(), (Double) subFieldValue, operator);
+                        case "date":
+                            return compareDates((Date) pubFieldValue, (Date) subFieldValue, operator);
+                        case "value":
+                        case "drop":
+                        case "variation":
+                            return compareDoubles((Double) pubFieldValue, (Double) subFieldValue, operator);
                         default:
                             throw new IllegalArgumentException("Unsupported field name: " + pubFieldName);
                     }
@@ -209,7 +230,7 @@ public class BrokerBolt extends BaseRichBolt {
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
         declarer.declareStream("subscription-stream",
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
-        declarer.declareStream("default",
-                new Fields("publication"));
+        declarer.declareStream("decoded-stream",
+                new Fields("company", "value", "drop", "variation", "date"));
     }
 }
