@@ -10,8 +10,8 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
-import org.apache.zookeeper.*;
-import org.apache.zookeeper.data.Stat;
+//import org.apache.zookeeper.*;
+//import org.apache.zookeeper.data.Stat;
 
 import java.util.*;
 
@@ -19,7 +19,7 @@ public class RerouteBolt extends BaseRichBolt {
     private OutputCollector collector;
     private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
     private String brokerId;
-    private ZooKeeper zkClient;
+    //private ZooKeeper zkClient;
     private static final String ZK_BROKER_PATH = "/zookeeper";
     private boolean isBackupMode = false;
 
@@ -39,17 +39,17 @@ public class RerouteBolt extends BaseRichBolt {
     public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
 
-        try {
-            zkClient = new ZooKeeper("localhost:2181", 3000, watchedEvent -> {});
-
-            String brokerZnodePath = ZK_BROKER_PATH + "/" + brokerId;
-            Stat stat = zkClient.exists(brokerZnodePath, true);
-            if (stat == null) {
-                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            zkClient = new ZooKeeper("localhost:2181", 3000, watchedEvent -> {});
+//
+//            String brokerZnodePath = ZK_BROKER_PATH + "/" + brokerId;
+//            Stat stat = zkClient.exists(brokerZnodePath, true);
+//            if (stat == null) {
+//                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override
@@ -200,22 +200,22 @@ public class RerouteBolt extends BaseRichBolt {
     public void watchForActivationCommands() {
         try {
             // Înregistrați un watcher pentru a primi notificări despre schimbările de date ale znode-ului
-            zkClient.getData(ZK_BROKER_PATH, new Watcher() {
-                @Override
-                public void process(WatchedEvent watchedEvent) {
-                    if (watchedEvent.getType() == Watcher.Event.EventType.NodeDataChanged) {
-                        // Când datele znode-ului se schimbă, preluați noile date
-                        try {
-                            byte[] newData = zkClient.getData(ZK_BROKER_PATH, false, null);
-                            if (new String(newData).equals("activate")) {
-                                isBackupMode = true;
-                            }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }, null);
+//            zkClient.getData(ZK_BROKER_PATH, new Watcher() {
+//                @Override
+//                public void process(WatchedEvent watchedEvent) {
+//                    if (watchedEvent.getType() == Watcher.Event.EventType.NodeDataChanged) {
+//                        // Când datele znode-ului se schimbă, preluați noile date
+//                        try {
+//                            byte[] newData = zkClient.getData(ZK_BROKER_PATH, false, null);
+//                            if (new String(newData).equals("activate")) {
+//                                isBackupMode = true;
+//                            }
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }
+//            }, null);
         } catch (Exception e) {
             e.printStackTrace();
         }

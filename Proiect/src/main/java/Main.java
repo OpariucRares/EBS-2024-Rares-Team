@@ -49,7 +49,7 @@ public class Main {
         }
 
         PublicationGenerator publicationGenerator = new PublicationGenerator();
-        var publications = publicationGenerator.generatePublications(10000, constants.pubFieldFreq);
+        var publications = publicationGenerator.generatePublications(300, constants.pubFieldFreq);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/publications.txt"))) {
             for (var publication : publications) {

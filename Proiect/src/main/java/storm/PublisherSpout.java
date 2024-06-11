@@ -37,47 +37,19 @@ public class PublisherSpout extends BaseRichSpout {
         if (index < publications.size()) {
             Publication publication = publications.get(index++);
             byte[] serializedPublication = publication.toByteArray();
-            collector.emit(new Values(serializedPublication));
-
-            String company = null;
-            double value = 0.0;
-            double drop = 0.0;
-            double variation = 0.0;
-            Date date = null;
-
-            for (PublicationField field : publication.getFields()) {
-                switch (field.getFieldName()) {
-                    case "company":
-                        company = (String) field.getValue();
-                        break;
-                    case "value":
-                        value = (double) field.getValue();
-                        break;
-                    case "drop":
-                        drop = (double) field.getValue();
-                        break;
-                    case "variation":
-                        variation = (double) field.getValue();
-                        break;
-                    case "date":
-                        date = (Date) field.getValue();
-                        break;
-                }
-            }
 
             long emissionTime = System.currentTimeMillis();
-            collector.emit(new Values(company, value, drop, variation, date, emissionTime));
+            collector.emit(new Values(serializedPublication, emissionTime));
             sentPublicationsNumber++;
             System.out.println("Publications emitted: " + sentPublicationsNumber);
-
             try {
-                Thread.sleep(1000);
+                Thread.sleep(1);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         } else {
             try {
-                Thread.sleep(1000);  // Sleep briefly when all tuples have been emitted
+                Thread.sleep(1);  // Sleep briefly when all tuples have been emitted
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }

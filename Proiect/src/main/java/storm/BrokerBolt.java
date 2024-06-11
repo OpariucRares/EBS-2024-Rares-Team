@@ -15,8 +15,8 @@ import org.apache.storm.tuple.Values;
 
 import models.publication.PublicationOuterClass.*;
 
-import org.apache.zookeeper.*;
-import org.apache.zookeeper.data.Stat;
+//import org.apache.zookeeper.*;
+//import org.apache.zookeeper.data.Stat;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -28,7 +28,7 @@ public class BrokerBolt extends BaseRichBolt {
     private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
     private String brokerId;
 
-    private ZooKeeper zkClient;
+    //private ZooKeeper zkClient;
     private static final String ZK_BROKER_PATH = "/zookeeper";
     private int receivedPublicationsNumber;
     private int matchedPublicationsNumber;
@@ -44,26 +44,26 @@ public class BrokerBolt extends BaseRichBolt {
     public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
         
-        try {
-            zkClient = new ZooKeeper("localhost:2181", 3000, null); // Eliminați watcher-ul din constructor
-
-            String brokerZnodePath = ZK_BROKER_PATH + "/" + brokerId;
-            Stat stat = zkClient.exists(brokerZnodePath, false);
-            if (stat == null) {
-                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-            }
-
-            zkClient.exists(brokerZnodePath, watchedEvent -> {
-                if (watchedEvent.getType() == Watcher.Event.EventType.NodeDeleted) {
-                    //handleBrokerDown(brokerZnodePath)
-                }
-            });
-
-        } catch (KeeperException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            zkClient = new ZooKeeper("localhost:2181", 3000, null); // Eliminați watcher-ul din constructor
+//
+//            String brokerZnodePath = ZK_BROKER_PATH + "/" + brokerId;
+//            Stat stat = zkClient.exists(brokerZnodePath, false);
+//            if (stat == null) {
+//                zkClient.create(brokerZnodePath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+//            }
+//
+//            zkClient.exists(brokerZnodePath, watchedEvent -> {
+//                if (watchedEvent.getType() == Watcher.Event.EventType.NodeDeleted) {
+//                    //handleBrokerDown(brokerZnodePath)
+//                }
+//            });
+//
+//        } catch (KeeperException e) {
+//            e.printStackTrace();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override
@@ -100,6 +100,7 @@ public class BrokerBolt extends BaseRichBolt {
         } else if ("notification-stream".equals(streamId) || "default".equals(streamId) || "decoded-stream".equals(streamId)) {
             receivedPublicationsNumber++;
             System.out.println("Processing publication...");
+            long emissionTime = tuple.getLongByField("emissionTime");
             if("default".equals(streamId)) {
                 byte[] serializedPublication = tuple.getBinaryByField("publication");
                 try {
@@ -142,8 +143,8 @@ public class BrokerBolt extends BaseRichBolt {
                         }
                     }
 
-                        collector.emit("decoded-stream",
-                                new Values(company, value, drop, variation, date));
+                    collector.emit("decoded-stream",
+                                new Values(company, value, drop, variation, date, emissionTime));
 
                     } catch (InvalidProtocolBufferException e) {
                         e.printStackTrace();
@@ -154,7 +155,7 @@ public class BrokerBolt extends BaseRichBolt {
             else {
 
     
-            long emissionTime = tuple.getLongByField("emissionTime");
+
 
             String company = tuple.getStringByField("company");
                 double value = tuple.getDoubleByField("value");
@@ -270,7 +271,7 @@ public class BrokerBolt extends BaseRichBolt {
         declarer.declareStream("subscription-stream",
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
         declarer.declareStream("decoded-stream",
-                new Fields("company", "value", "drop", "variation", "date"));
+                new Fields("company", "value", "drop", "variation", "date", "emissionTime"));
     }
 
     @Override
