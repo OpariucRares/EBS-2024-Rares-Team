@@ -11,7 +11,6 @@ import models.subscription.SubscriptionGenerator;
 import org.apache.storm.tuple.Fields;
 import storm.BrokerBolt;
 import storm.PublisherSpout;
-import storm.RerouteBolt;
 import storm.SubscriberBolt;
 import util.Constants;
 
@@ -27,8 +26,8 @@ public class Main {
 
         SubscriptionGenerator subscriptionGenerator = new SubscriptionGenerator();
 
-        var subscriptions1 = subscriptionGenerator.generateSubscriptions(10, constants.fieldFreq, constants.eqFreq);
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions1.txt", false))) {
+        var subscriptions1 = subscriptionGenerator.generateSubscriptions(5000, constants.fieldFreq, constants.eqFreq);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions1.txt"))) {
             for (var subscription : subscriptions1) {
                 writer.write(subscription.toString());
                 writer.newLine();
@@ -38,8 +37,8 @@ public class Main {
             System.err.println("Error writing to file: " + e.getMessage());
         }
 
-        var subscriptions2 = subscriptionGenerator.generateSubscriptions(10, constants.fieldFreq, constants.eqFreq);
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions2.txt", false))) {
+        var subscriptions2 = subscriptionGenerator.generateSubscriptions(5000, constants.fieldFreq, constants.eqFreq);
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/subscriptions2.txt"))) {
             for (var subscription : subscriptions2) {
                 writer.write(subscription.toString());
                 writer.newLine();
@@ -50,9 +49,9 @@ public class Main {
         }
 
         PublicationGenerator publicationGenerator = new PublicationGenerator();
-        var publications = publicationGenerator.generatePublications(10, constants.pubFieldFreq);
+        var publications = publicationGenerator.generatePublications(10000, constants.pubFieldFreq);
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/publications.txt", false))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/publications.txt"))) {
             for (var publication : publications) {
                 writer.write(publication.toString());
                 writer.newLine();
@@ -69,7 +68,6 @@ public class Main {
         BrokerBolt brokerBolt3 = new BrokerBolt("broker3");
         SubscriberBolt subscriberBolt1 = new SubscriberBolt("subscriber1", subscriptions1);
         SubscriberBolt subscriberBolt2 = new SubscriberBolt("subscriber2", subscriptions2);
-
 //        SubscriberBolt subscriberBolt3 = new SubscriberBolt("subscriber-789", subscriptions);
 
         TopologyBuilder builder = new TopologyBuilder();
@@ -125,10 +123,11 @@ public class Main {
         if (args.length == 0) {
             // Run the topology in a local cluster
             LocalCluster cluster = new LocalCluster();
-            cluster.submitTopology("my-topology", config, builder.createTopology());
+            cluster.submitTopology("word-count-topology-one", config, builder.createTopology());
 
             // Keep the topology running for some time (e.g., 60 seconds) for demonstration purposes
-            Thread.sleep(6000);
+//            Thread.sleep(60000 * 3); // multiplied by the number of minutes wanted
+            Thread.sleep(6000 * 3);
 
             // Shutdown the local cluster
             cluster.shutdown();

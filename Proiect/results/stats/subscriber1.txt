@@ -1,0 +1,2 @@
+Publications received: 171
+Mean latency:31 milliseconds

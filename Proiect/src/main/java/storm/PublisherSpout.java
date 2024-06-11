@@ -17,10 +17,12 @@ public class PublisherSpout extends BaseRichSpout {
     private List<Publication> publications;
     private int index;
     private long startTime;
+    private int sentPublicationsNumber;
 
     public PublisherSpout(List<Publication> publications) {
         this.publications = publications;
         this.index = 0;
+        this.sentPublicationsNumber = 0;
     }
 
     @Override
@@ -59,7 +61,12 @@ public class PublisherSpout extends BaseRichSpout {
                         break;
                 }
             }
-            collector.emit(new Values(company, value, drop, variation, date));
+
+            long emissionTime = System.currentTimeMillis();
+            collector.emit(new Values(company, value, drop, variation, date, emissionTime));
+            sentPublicationsNumber++;
+            System.out.println("Publications emitted: " + sentPublicationsNumber);
+
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
@@ -76,6 +83,6 @@ public class PublisherSpout extends BaseRichSpout {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
-        declarer.declare(new Fields("company", "value", "drop", "variation", "date"));
+        declarer.declare(new Fields("company", "value", "drop", "variation", "date", "emissionTime"));
     }
 }

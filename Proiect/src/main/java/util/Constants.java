@@ -17,9 +17,12 @@ public class Constants {
     );
 
     public final Map<String, Double> eqFreq = Map.of(
-            "company", 0.5,
-            "value", 0.4
+            "company", 1.0
     );
+
+//    public final Map<String, Double> eqFreq = Map.of(
+//            "company", 0.25
+//    );
 
     public final Map<String, Double> pubFieldFreq = Map.of(
             "company", 1.0,

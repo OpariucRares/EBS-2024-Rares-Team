@@ -13,6 +13,9 @@ import org.apache.storm.tuple.Values;
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.Stat;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 public class BrokerBolt extends BaseRichBolt {
@@ -21,16 +24,20 @@ public class BrokerBolt extends BaseRichBolt {
     private String brokerId;
     private ZooKeeper zkClient;
     private static final String ZK_BROKER_PATH = "/zookeeper";
+    private int receivedPublicationsNumber;
+    private int matchedPublicationsNumber;
 
     public BrokerBolt(String brokerId) {
         this.subscriptionMap = Collections.synchronizedMap(new HashMap<>());
         this.brokerId = brokerId;
+        this.receivedPublicationsNumber = 0;
+        this.matchedPublicationsNumber = 0;
     }
 
     @Override
     public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
-
+        
         try {
             zkClient = new ZooKeeper("localhost:2181", 3000, null); // Eliminați watcher-ul din constructor
 
@@ -77,15 +84,19 @@ public class BrokerBolt extends BaseRichBolt {
 
             synchronized (subscriptionMap) {
                 subscriptionMap.computeIfAbsent(subscriberId, k -> new ArrayList<>()).add(subscriptionFields);
-                System.out.println("Added to subMap! Current map size: " + subscriptionMap.size());
-                System.out.println("Current subscriptionMap: " + subscriptionMap);
+//                System.out.println("Added to subMap! Current map size: " + subscriptionMap.size());
+//                System.out.println("Current subscriptionMap: " + subscriptionMap);
             }
 
             collector.emit("subscription-stream", new Values(brokerId, company, value, drop, variation, date));
 
 
         } else if ("notification-stream".equals(streamId) || "default".equals(streamId)) {
+            receivedPublicationsNumber++;
             System.out.println("Processing publication...");
+
+            long emissionTime = tuple.getLongByField("emissionTime");
+
             String company = tuple.getStringByField("company");
             double value = tuple.getDoubleByField("value");
             double drop = tuple.getDoubleByField("drop");
@@ -99,7 +110,7 @@ public class BrokerBolt extends BaseRichBolt {
             publication.addField(new PublicationField("variation", variation));
             publication.addField(new PublicationField("date", date));
 
-            System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
+//            System.out.println("SubscriptionMap before processing publication: " + subscriptionMap);
             synchronized (subscriptionMap) {
                 for (Map.Entry<String, List<Map<String, Map<Object, String>>>> entry : subscriptionMap.entrySet()) {
                     boolean isFound = false;
@@ -108,7 +119,8 @@ public class BrokerBolt extends BaseRichBolt {
                     for (Map<String, Map<Object, String>> subscription : subscriptions) {
                         if (matches(subscription, publication)) {
                             collector.emit("notification-stream",
-                                    new Values(subscriberId, company, value, drop, variation, date));
+                                    new Values(subscriberId, company, value, drop, variation, date, emissionTime));
+                            matchedPublicationsNumber++;
                             isFound = true;
                             break;
                         }
@@ -192,11 +204,22 @@ public class BrokerBolt extends BaseRichBolt {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declareStream("notification-stream",
-                new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
+                new Fields("subscriberId", "company", "value", "drop", "variation", "date", "emissionTime"));
         declarer.declareStream("subscription-stream",
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
     }
 
+    @Override
+    public void cleanup() {
+        try (BufferedWriter writer = new BufferedWriter(
+                new FileWriter("results/stats/" + brokerId + ".txt"))) {
+            writer.write("Publications received: " + receivedPublicationsNumber +
+                    "\nPublications matched: " + matchedPublicationsNumber);
+            writer.newLine();
+        } catch (IOException e) {
+            System.err.println("Error writing to file: " + e.getMessage());
+        }
+    }
     //TENTATIVA PENTRU CADEREA BROKERILOR
 //    private void handleBrokerDown(String path) {
 //        //    String downBrokerId = path.substring(path.lastIndexOf('/') + 1);

@@ -21,10 +21,14 @@ public class SubscriberBolt extends BaseRichBolt {
     private OutputCollector collector;
     private List<Subscription> subscriptions;
     private String subscriberId;
+    private long totalLatency;
+    private int receivedPublicationsNumber;
 
     public SubscriberBolt(String subscriberId, List<Subscription> subscriptions) {
         this.subscriberId = subscriberId;
         this.subscriptions = subscriptions;
+        this.totalLatency = 0L;
+        this.receivedPublicationsNumber = 0;
     }
 
     @Override
@@ -66,6 +70,11 @@ public class SubscriberBolt extends BaseRichBolt {
     public void execute(Tuple tuple) {
         String streamId = tuple.getSourceStreamId();
         if ("notification-stream".equals(streamId)) {
+            receivedPublicationsNumber++;
+
+            long receiveTime = System.currentTimeMillis();
+            long emissionTime = tuple.getLongByField("emissionTime");
+            totalLatency += (receiveTime- emissionTime);
 
             String company = tuple.getStringByField("company");
             double value = tuple.getDoubleByField("value");
@@ -83,9 +92,10 @@ public class SubscriberBolt extends BaseRichBolt {
             System.out.println(tuple.getStringByField("subscriberId") + "Yey I got a pub ! " + publication.toString());
 
             try (BufferedWriter writer = new BufferedWriter(
-                    new FileWriter("results/publication-received-" + tuple.getStringByField("subscriberId") + ".txt",
+                    new FileWriter("results/publication-received-by-" + tuple.getStringByField("subscriberId") + ".txt",
                             true))) {
-                writer.write(publication.toString());
+                writer.write(publication.toString() + " { Emission time: " + emissionTime + "} | { Receive time: " +
+                        receiveTime + " } | { Transmission time: " + (receiveTime - emissionTime) + " milliseconds }");
                 writer.newLine();
             } catch (IOException e) {
                 System.err.println("Error writing to file: " + e.getMessage());
@@ -97,5 +107,19 @@ public class SubscriberBolt extends BaseRichBolt {
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declareStream("subscription-stream",
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
+    }
+
+    @Override
+    public void cleanup() {
+        if (receivedPublicationsNumber > 0) {
+            try (BufferedWriter writer = new BufferedWriter(
+                    new FileWriter("results/stats/" + subscriberId + ".txt"))) {
+                writer.write("Publications received: " + receivedPublicationsNumber +
+                        "\nMean latency:" + (totalLatency / receivedPublicationsNumber) + " milliseconds");
+                writer.newLine();
+            } catch (IOException e) {
+                System.err.println("Error writing to file: " + e.getMessage());
+            }
+        }
     }
 }
