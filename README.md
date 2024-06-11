@@ -21,6 +21,10 @@ Setup:
 | Mean latency                          | 18 / 24 ms                    | 15 / 31 ms                           |
 | Matching rate                         | 99.41% (170 / 170 out of 171) | 97.66% / 100% (167 / 171 out of 171) |
 
+## Topology
+
+![image](https://github.com/OpariucRares/EBS-2024-Rares-Team/assets/25665859/32aff337-f3da-41a5-86ba-17b7be7ce5aa)
+
 
 ## Structura
   Acest repository este pentru materia Event Based Systems. Acesta este impartit in doua foldere: Tema Practica si Proiect.
