@@ -79,8 +79,8 @@ public class Main {
 
         // Adăugarea BrokerBolt la topologie
         builder.setBolt("broker-bolt-decode", brokerBoltDecode, 3)
-                        .shuffleGrouping("publisher-spout-1")
-                        .fieldsGrouping("broker-bolt-1", "decoded-stream", new Fields("company", "value", "drop", "variation", "date"));
+                        .shuffleGrouping("publisher-spout-1");
+                        // .fieldsGrouping("broker-bolt-1", "decoded-stream", new Fields("company", "value", "drop", "variation", "date"));
 
         builder.setBolt("broker-bolt-1", brokerBolt1, 3)
                 .shuffleGrouping("broker-bolt-decode", "decoded-stream")
