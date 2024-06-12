@@ -51,5 +51,7 @@ Setup:
 
 ## Topology
 
-![image](https://github.com/OpariucRares/EBS-2024-Rares-Team/assets/25665859/32aff337-f3da-41a5-86ba-17b7be7ce5aa)
+![image](https://github.com/OpariucRares/EBS-2024-Rares-Team/assets/46899212/7b2ad75c-73b0-470b-9dac-f9403c79fc3a)
+
+)
 
