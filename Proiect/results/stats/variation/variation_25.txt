@@ -1,0 +1,9 @@
+Publications sent: 177
+Publications received: 177
+Matched publications subscriber 1: 20
+Latency subscriber 1: 6 ms
+Matched publications subscriber 2: 20
+Latency subscriber 2: 7 ms
+Match rate: 11.30%
+Important key variation
+Equal percent 0.25
