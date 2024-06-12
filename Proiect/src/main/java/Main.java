@@ -51,7 +51,7 @@ public class Main {
         }
 
         PublicationGenerator publicationGenerator = new PublicationGenerator();
-        var publications = publicationGenerator.generatePublications(1000, constants.pubFieldFreq);
+        var publications = publicationGenerator.generatePublications(2000, constants.pubFieldFreq);
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("results/publications.txt"))) {
             for (var publication : publications) {
@@ -159,7 +159,7 @@ public class Main {
 
             // Keep the topology running for some time (e.g., 60 seconds) for demonstration purposes
 //            Thread.sleep(60000 * 3); // multiplied by the number of minutes wanted
-            Thread.sleep(20000 * 3);
+            Thread.sleep(10000 * 3);
 
             // Shutdown the local cluster
             cluster.shutdown();
@@ -169,6 +169,7 @@ public class Main {
         }
 
         int publicationsReceived = readPublicationsReceived("results/stats/broker1.txt", false);
+        int publicationsSent = readPublicationsReceived("results/publisher.txt", false);
 
         int matchedPubsSubOne = readPublicationsReceived("results/stats/subscriber1.txt", false);
         int latencySubOne = readPublicationsReceived("results/stats/subscriber1.txt", true);
@@ -180,34 +181,36 @@ public class Main {
             return;
         }
 
-        double matchRate = (double) (matchedPubsSubOne + matchedPubsSubTwo) / publicationsReceived;
+        double matchRate = (double) (matchedPubsSubOne + matchedPubsSubTwo) / (publicationsReceived * 2);
         double matchRatePercentage = matchRate * 100;
 
-//        writeStatistics("results/stats/company/company_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+        writeStatistics("results/stats/company/company_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
+                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/company/company_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/date/date_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/date/date_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/drop/drop_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/drop/drop_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/value/value_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/value/value_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/variation/variation_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/variation/variation_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-//                latencySubOne, latencySubTwo, matchRatePercentage);
+//                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 
     }
     private static void writeStatistics(String filePath, int publicationsReceived, int matchedPubsSubOne,
-                                        int matchedPubsSubTwo, int latencySub1, int latencySub2, double matchRatePercentage) {
+                                        int matchedPubsSubTwo, int latencySub1, int latencySub2, double matchRatePercentage,
+                                        int publicationsSent) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath, true))) {
+            writer.write("Publications sent: " + publicationsSent + "\n");
             writer.write("Publications received: " + publicationsReceived + "\n");
             writer.write("Matched publications subscriber 1: " + matchedPubsSubOne + "\n");
             writer.write("Latency subscriber 1: " + latencySub1 + " ms\n");
@@ -230,7 +233,7 @@ public class Main {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.startsWith("Publications received:") && !ignoreFirstLine) {
+                if ((line.startsWith("Publications received:") || line.startsWith("Publications sent:")) && !ignoreFirstLine) {
                     String[] parts = line.split(":");
                     if (parts.length == 2) {
                         String publicationsReceivedStr = parts[1].trim();

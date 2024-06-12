@@ -8,6 +8,10 @@ import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichSpout;
 import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Values;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -59,5 +63,16 @@ public class PublisherSpout extends BaseRichSpout {
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
         declarer.declare(new Fields("publication", "emissionTime"));
+    }
+
+    @Override
+    public void close() {
+        try (BufferedWriter writer = new BufferedWriter(
+                new FileWriter("results/publisher.txt"))) {
+            writer.write("Publications sent: " + sentPublicationsNumber);
+            writer.newLine();
+        } catch (IOException e) {
+            System.err.println("Error writing to file: " + e.getMessage());
+        }
     }
 }
