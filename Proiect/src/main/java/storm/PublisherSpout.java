@@ -41,7 +41,7 @@ public class PublisherSpout extends BaseRichSpout {
             long emissionTime = System.currentTimeMillis();
             collector.emit(new Values(serializedPublication, emissionTime));
             sentPublicationsNumber++;
-            System.out.println("Publications emitted: " + sentPublicationsNumber);
+//            System.out.println("Publications emitted: " + sentPublicationsNumber);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {

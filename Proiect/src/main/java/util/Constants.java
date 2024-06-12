@@ -9,15 +9,15 @@ public class Constants {
     public Constants(){}
 
     public final Map<String, Double> fieldFreq = Map.of(
-            "company", 0.50,
+            "company", 0.80,
             "value", 0.80,
-            "drop", 0.60,
-            "variation", 0.60,
-            "date", 0.50
+            "drop", 0.80,
+            "variation", 0.80,
+            "date", 0.80
     );
 
     public final Map<String, Double> eqFreq = Map.of(
-            "company", 1.0
+            "company", 0.25
     );
 
 //    public final Map<String, Double> eqFreq = Map.of(

@@ -98,8 +98,9 @@ public class BrokerBolt extends BaseRichBolt {
 
 
         } else if ("notification-stream".equals(streamId) || "default".equals(streamId) || "decoded-stream".equals(streamId)) {
-            receivedPublicationsNumber++;
-            System.out.println("Processing publication...");
+            if ("decoded-stream".equals(streamId))
+                receivedPublicationsNumber++;
+
             long emissionTime = tuple.getLongByField("emissionTime");
             if("default".equals(streamId)) {
                 byte[] serializedPublication = tuple.getBinaryByField("publication");
@@ -114,31 +115,31 @@ public class BrokerBolt extends BaseRichBolt {
                     Publication publication = Publication.parseFrom(serializedPublication);
                     // Process the deserialized publication
                     for (PublicationField field : publication.getFieldsList()) {
-                        System.out.println("Field Name: " + field.getFieldName());
+//                        System.out.println("Field Name: " + field.getFieldName());
                         switch (field.getValueCase()) {
                             case COMPANYFIELD:
-                                System.out.println("Company Value: " + field.getCompanyField());
+//                                System.out.println("Company Value: " + field.getCompanyField());
                                 company = field.getCompanyField();
                                 break;
                             case VALUEFIELD:
-                                System.out.println("Value Value: " + field.getValueField());
+//                                System.out.println("Value Value: " + field.getValueField());
                                 value = field.getValueField();
                                 break;
                             case DROPFIELD:
-                                System.out.println("Drop Value: " + field.getDropField());
+//                                System.out.println("Drop Value: " + field.getDropField());
                                 drop = field.getDropField();
                                 break;
                             case VARIATIONFIELD:
-                                System.out.println("Variation Value: " + field.getVariationField());
+//                                System.out.println("Variation Value: " + field.getVariationField());
                                 variation = field.getVariationField();
                                 break;
                             case DATEFIELD:
-                                System.out.println("Date Value: " + field.getDateField());
+//                                System.out.println("Date Value: " + field.getDateField());
                                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
                                 date = dateFormat.parse(field.getDateField());
                                 break;
                             case VALUE_NOT_SET:
-                                System.out.println("Value not set");
+//                                System.out.println("Value not set");
                                 break;
                         }
                     }
@@ -196,45 +197,41 @@ public class BrokerBolt extends BaseRichBolt {
         }
 
     }
-
     private boolean matches(Map<String, Map<Object, String>> subscription, Map<String, Object> publication) {
-        for (Map.Entry<String, Object> pubEntry : publication.entrySet()) {
-            String pubFieldName = pubEntry.getKey();
-            Object pubFieldValue = pubEntry.getValue();
+        for (Map.Entry<String, Map<Object, String>> subEntry : subscription.entrySet()) {
+            String subFieldName = subEntry.getKey();
+            Map<Object, String> subFieldMap = subEntry.getValue();
 
-            Map<Object, String> subFieldMap = subscription.get(pubFieldName);
-            if (!subFieldMap.isEmpty()) {
+            Object pubFieldValue = publication.get(subFieldName);
+
+            if (pubFieldValue != null && !subFieldMap.isEmpty()) {
                 for (Map.Entry<Object, String> entry : subFieldMap.entrySet()) {
                     Object subFieldValue = entry.getKey();
                     String operator = entry.getValue();
 
-                    switch (pubFieldName) {
+                    switch (subFieldName) {
                         case "company":
-                            if (!compareStrings((String) pubFieldValue, (String) subFieldValue, operator)) {
+                            if (!compareStrings((String) pubFieldValue, (String) subFieldValue, operator))
                                 return false;
-                            }
                             break;
                         case "date":
-                            if (!compareDates((Date) pubFieldValue, (Date) subFieldValue, operator)) {
+                            if (!compareDates((Date) pubFieldValue, (Date) subFieldValue, operator))
                                 return false;
-                            }
                             break;
                         case "value":
                         case "drop":
                         case "variation":
-                            if (!compareDoubles((Double) pubFieldValue, (Double) subFieldValue, operator)) {
+                            if (!compareDoubles((Double) pubFieldValue, (Double) subFieldValue, operator))
                                 return false;
-                            }
                             break;
                         default:
-                            throw new IllegalArgumentException("Unsupported field name: " + pubFieldName);
+                            throw new IllegalArgumentException("Unsupported field name: " + subFieldName);
                     }
                 }
-                return true;
             }
-
         }
-        return false;
+        // all match
+        return true;
     }
 
     public static boolean compareStrings(String pubFieldValue, String subFieldValue, String operator) {
@@ -284,10 +281,12 @@ public class BrokerBolt extends BaseRichBolt {
 
     @Override
     public void cleanup() {
+        if (!"broker1".equals(brokerId))
+            return;
+
         try (BufferedWriter writer = new BufferedWriter(
                 new FileWriter("results/stats/" + brokerId + ".txt"))) {
-            writer.write("Publications received: " + receivedPublicationsNumber +
-                    "\nPublications matched: " + matchedPublicationsNumber);
+            writer.write("Publications received: " + receivedPublicationsNumber);
             writer.newLine();
         } catch (IOException e) {
             System.err.println("Error writing to file: " + e.getMessage());

@@ -1,0 +1,5 @@
+{(company, "Amazon"); (value, 0.87); (drop, 0.43); (variation, 0.79); (date, 29.10.2022)} { Emission time: 1718152831475} | { Receive time: 1718152831479 } | { Transmission time: 4 milliseconds }
+{(company, "Amazon"); (value, 0.65); (drop, 0.98); (variation, 0.47); (date, 12.12.2018)} { Emission time: 1718152840481} | { Receive time: 1718152840483 } | { Transmission time: 2 milliseconds }
+{(company, "Amazon"); (value, 0.6); (drop, 0.9); (variation, 0.52); (date, 22.12.2013)} { Emission time: 1718152841482} | { Receive time: 1718152841485 } | { Transmission time: 3 milliseconds }
+{(company, "Amazon"); (value, 0.69); (drop, 0.92); (variation, 0.21); (date, 23.07.2014)} { Emission time: 1718152846489} | { Receive time: 1718152846495 } | { Transmission time: 6 milliseconds }
+{(company, "Amazon"); (value, 0.9); (drop, 0.69); (variation, 0.12); (date, 07.10.2013)} { Emission time: 1718152866511} | { Receive time: 1718152866514 } | { Transmission time: 3 milliseconds }

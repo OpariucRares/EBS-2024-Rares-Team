@@ -1,0 +1,5 @@
+{(company, "Google"); (value, 0.94); (drop, 0.02); (variation, 0.26); (date, 05.09.2002)} { Emission time: 1718152823467} | { Receive time: 1718152823478 } | { Transmission time: 11 milliseconds }
+{(company, "Microsoft"); (value, 0.17); (drop, 0.22); (variation, 0.96); (date, 18.07.2019)} { Emission time: 1718152826470} | { Receive time: 1718152826474 } | { Transmission time: 4 milliseconds }
+{(company, "Microsoft"); (value, 0.34); (drop, 0.37); (variation, 0.97); (date, 03.06.2011)} { Emission time: 1718152834477} | { Receive time: 1718152834482 } | { Transmission time: 5 milliseconds }
+{(company, "Microsoft"); (value, 0.1); (drop, 0.39); (variation, 0.92); (date, 29.11.2000)} { Emission time: 1718152852496} | { Receive time: 1718152852500 } | { Transmission time: 4 milliseconds }
+{(company, "Microsoft"); (value, 0.45); (drop, 0.52); (variation, 0.73); (date, 16.07.2013)} { Emission time: 1718152854500} | { Receive time: 1718152854504 } | { Transmission time: 4 milliseconds }

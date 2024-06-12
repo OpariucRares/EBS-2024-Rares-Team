@@ -89,7 +89,7 @@ public class SubscriberBolt extends BaseRichBolt {
             publication.addField(new PublicationField("variation", variation));
             publication.addField(new PublicationField("date", date));
 
-            System.out.println(tuple.getStringByField("subscriberId") + "Yey I got a pub ! " + publication.toString());
+//            System.out.println(tuple.getStringByField("subscriberId") + "Yey I got a pub ! " + publication.toString());
 
             try (BufferedWriter writer = new BufferedWriter(
                     new FileWriter("results/publication-received-by-" + tuple.getStringByField("subscriberId") + ".txt",
