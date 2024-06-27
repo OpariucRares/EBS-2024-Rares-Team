@@ -14,6 +14,7 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
 import models.publication.PublicationOuterClass.*;
+import util.Utils;
 
 //import org.apache.zookeeper.*;
 //import org.apache.zookeeper.data.Stat;
@@ -22,11 +23,19 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BrokerBolt extends BaseRichBolt {
     private OutputCollector collector;
     private Map<String, List<Map<String, Map<Object, String>>>> subscriptionMap;
     private String brokerId;
+
+    private final AtomicBoolean isActive = new AtomicBoolean(true);
+    private Thread heartbeatThread;
+    private final long HEARTBEAT_INTERVAL = 3000;
+
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm:ss.SSS");
 
     //private ZooKeeper zkClient;
     private static final String ZK_BROKER_PATH = "/zookeeper";
@@ -40,9 +49,39 @@ public class BrokerBolt extends BaseRichBolt {
         this.matchedPublicationsNumber = 0;
     }
 
+    public String getBrokerId() {
+        return this.brokerId;
+    }
+
     @Override
     public void prepare(Map<String, Object> topoConf, TopologyContext context, OutputCollector collector) {
         this.collector = collector;
+
+        // Start a thread to emit heartbeats
+        new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(HEARTBEAT_INTERVAL);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if ("broker2".equals(this.brokerId)) {
+                    collector.emit("heartbeat-stream", new Values("heartbeat", this.brokerId));
+                }
+            }
+        }).start();
+
+//        heartbeatThread = new Thread(() -> {
+//            while (isActive.get() && !Thread.currentThread().isInterrupted()) {
+//                try {
+//                    Thread.sleep(HEARTBEAT_INTERVAL); // Emit heartbeat every second
+//                    collector.emit("heartbeat-stream", new Values("heartbeat", this.brokerId));
+//                } catch (InterruptedException e) {
+//                    Thread.currentThread().interrupt();
+//                }
+//            }
+//        });
+//        heartbeatThread.start();
         
 //        try {
 //            zkClient = new ZooKeeper("localhost:2181", 3000, null); // Eliminați watcher-ul din constructor
@@ -66,8 +105,32 @@ public class BrokerBolt extends BaseRichBolt {
 //        }
     }
 
+    public void simulateFailure() {
+        isActive.set(false);
+        if (heartbeatThread != null && heartbeatThread.isAlive()) {
+            heartbeatThread.interrupt();
+            try {
+                heartbeatThread.join();  // Wait for the thread to finish
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        System.err.println("[" + dateFormat.format(new Date()) +
+                "]" + this.brokerId + " bolt STARTED simulating failure and will not emit tuples.");
+    }
+
     @Override
     public void execute(Tuple tuple) {
+        if (!isActive.get()) {
+//            System.err.println("[" + dateFormat.format(new Date()) +
+//                    "]" + this.brokerId + " bolt is simulating failure and will not emit tuples.");
+            return;
+        }
+        else if ("broker2".equals(this.brokerId)) {
+//            System.err.println("[" + dateFormat.format(new Date()) +
+//                    "]" + this.brokerId + " bolt FAILED simulating failure and will emit tuples." + isActive.get());
+        }
+
         String streamId = tuple.getSourceStreamId();
 
         if ("subscription-stream".equals(streamId)) {
@@ -277,21 +340,29 @@ public class BrokerBolt extends BaseRichBolt {
                 new Fields("subscriberId", "company", "value", "drop", "variation", "date"));
         declarer.declareStream("decoded-stream",
                 new Fields("company", "value", "drop", "variation", "date", "emissionTime"));
+        declarer.declareStream("heartbeat-stream", new Fields("heartbeat", "brokerId"));
     }
 
     @Override
     public void cleanup() {
-        if (!"broker1".equals(brokerId))
+        if (!"broker1".equals(this.brokerId))
             return;
 
         try (BufferedWriter writer = new BufferedWriter(
-                new FileWriter("results/stats/" + brokerId + ".txt"))) {
+                new FileWriter("results/stats/" + this.brokerId + ".txt"))) {
             writer.write("Publications received: " + receivedPublicationsNumber);
             writer.newLine();
         } catch (IOException e) {
             System.err.println("Error writing to file: " + e.getMessage());
         }
+
+        // Ensure the heartbeat thread is stopped when the bolt is cleaned up
+        isActive.set(false);
+        if (heartbeatThread != null && heartbeatThread.isAlive()) {
+            heartbeatThread.interrupt();
+        }
     }
+
     //TENTATIVA PENTRU CADEREA BROKERILOR
 //    private void handleBrokerDown(String path) {
 //        //    String downBrokerId = path.substring(path.lastIndexOf('/') + 1);

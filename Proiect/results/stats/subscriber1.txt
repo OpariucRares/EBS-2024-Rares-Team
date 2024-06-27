@@ -1,2 +1,2 @@
-Publications received: 37
-Mean latency:7 milliseconds
+Publications received: 3
+Mean latency:14 milliseconds

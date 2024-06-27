@@ -6,12 +6,14 @@ import models.subscription.SubscriptionField;
 import org.apache.storm.Config;
 import org.apache.storm.LocalCluster;
 import org.apache.storm.StormSubmitter;
+import org.apache.storm.generated.KillOptions;
 import org.apache.storm.topology.TopologyBuilder;
 import models.publication.PublicationGenerator;
 import models.subscription.SubscriptionGenerator;
 import org.apache.storm.tuple.Fields;
 import storm.BrokerBolt;
 import storm.PublisherSpout;
+import storm.SecondaryBolt;
 import storm.SubscriberBolt;
 import util.Constants;
 
@@ -92,6 +94,7 @@ public class Main {
 //        PublisherSpout publisherSpout2 = new PublisherSpout(publications);
         BrokerBolt brokerBoltDecode = new BrokerBolt("broker-decode");
         BrokerBolt brokerBolt1 = new BrokerBolt("broker1");
+        SecondaryBolt brokerBolt2Secondary = new SecondaryBolt("broker2-secondary");
         BrokerBolt brokerBolt2 = new BrokerBolt("broker2");
         BrokerBolt brokerBolt3 = new BrokerBolt("broker3");
         SubscriberBolt subscriberBolt1 = new SubscriberBolt("subscriber1", subscriptions1);
@@ -101,32 +104,38 @@ public class Main {
         TopologyBuilder builder = new TopologyBuilder();
 
         // Adăugarea PublisherSpout la topologie
-        builder.setSpout("publisher-spout-1", publisherSpout1, 2);
+        builder.setSpout("publisher-spout-1", publisherSpout1, 1);
         // builder.setSpout("publisher-spout2", publisherSpout2, 2);
 
         // Adăugarea BrokerBolt la topologie
-        builder.setBolt("broker-bolt-decode", brokerBoltDecode, 3)
+        builder.setBolt("broker-bolt-decode", brokerBoltDecode, 1)
                         .shuffleGrouping("publisher-spout-1");
                         // .fieldsGrouping("broker-bolt-1", "decoded-stream", new Fields("company", "value", "drop", "variation", "date"));
 
-        builder.setBolt("broker-bolt-1", brokerBolt1, 3)
+        builder.setBolt("broker-bolt-1", brokerBolt1, 1)
                 .shuffleGrouping("broker-bolt-decode", "decoded-stream")
                 .fieldsGrouping("broker-bolt-2", "subscription-stream", new Fields("subscriberId"))
                 .fieldsGrouping("broker-bolt-3", "subscription-stream", new Fields("subscriberId"));
 
-        builder.setBolt("broker-bolt-2", brokerBolt2, 3)
+        builder.setBolt("broker-bolt-2", brokerBolt2, 1)
+                .shuffleGrouping("broker-bolt-1", "notification-stream")
+                .fieldsGrouping("subscriber-bolt-1", "subscription-stream", new Fields("subscriberId"))
+                .fieldsGrouping("broker-bolt-2-secondary", "heartbeat-stream", new Fields("heartbeat"));
+
+        builder.setBolt("broker-bolt-2-secondary", brokerBolt2Secondary, 1)
+                .shuffleGrouping("broker-bolt-2", "heartbeat-stream")
                 .shuffleGrouping("broker-bolt-1", "notification-stream")
                 .fieldsGrouping("subscriber-bolt-1", "subscription-stream", new Fields("subscriberId"));
 
-        builder.setBolt("broker-bolt-3", brokerBolt3, 3)
+        builder.setBolt("broker-bolt-3", brokerBolt3, 1)
                 .shuffleGrouping("broker-bolt-1", "notification-stream")
                 .fieldsGrouping("subscriber-bolt-2", "subscription-stream", new Fields("subscriberId"));
 
         // Adăugarea SubscriberBolt la topologie
-        builder.setBolt("subscriber-bolt-1", subscriberBolt1, 2)
+        builder.setBolt("subscriber-bolt-1", subscriberBolt1, 1)
                 .shuffleGrouping("broker-bolt-2", "notification-stream");
 
-        builder.setBolt("subscriber-bolt-2", subscriberBolt2, 2)
+        builder.setBolt("subscriber-bolt-2", subscriberBolt2, 1)
                 .shuffleGrouping("broker-bolt-3", "notification-stream");
 
         // Config
@@ -157,9 +166,68 @@ public class Main {
             LocalCluster cluster = new LocalCluster();
             cluster.submitTopology("word-count-topology-one", config, builder.createTopology());
 
+            Thread.sleep(10000);
+            System.err.println("Simulated failure on broker 2");
+
+            KillOptions killOptions = new KillOptions();
+            killOptions.set_wait_secs(0);
+            cluster.killTopologyWithOpts("word-count-topology-one", killOptions);
+            // Sleep for a short period to ensure the topology is killed
+            try {
+                Thread.sleep(5000); // Wait for 5 seconds to ensure the topology is killed
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            TopologyBuilder newBuilder = new TopologyBuilder();
+
+            // Adăugarea PublisherSpout la topologie
+            newBuilder.setSpout("Fpublisher-spout-1", publisherSpout1, 1);
+            // builder.setSpout("publisher-spout2", publisherSpout2, 2);
+
+            // Adăugarea BrokerBolt la topologie
+            newBuilder.setBolt("Fbroker-bolt-decode", brokerBoltDecode, 1)
+                    .shuffleGrouping("Fpublisher-spout-1");
+            // .fieldsGrouping("broker-bolt-1", "decoded-stream", new Fields("company", "value", "drop", "variation", "date"));
+
+            newBuilder.setBolt("Fbroker-bolt-1", brokerBolt1, 1)
+                    .shuffleGrouping("Fbroker-bolt-decode", "decoded-stream")
+                    .fieldsGrouping("Fbroker-bolt-2", "subscription-stream", new Fields("subscriberId"))
+                    .fieldsGrouping("Fbroker-bolt-3", "subscription-stream", new Fields("subscriberId"));
+
+            newBuilder.setBolt("Fbroker-bolt-2", brokerBolt2, 1);
+//                    .shuffleGrouping("broker-bolt-1", "notification-stream")
+//                    .fieldsGrouping("subscriber-bolt-1", "subscription-stream", new Fields("subscriberId"))
+//                    .fieldsGrouping("broker-bolt-2-secondary", "heartbeat-stream", new Fields("heartbeat"));
+
+            newBuilder.setBolt("Fbroker-bolt-2-secondary", brokerBolt2Secondary, 1)
+                    //.shuffleGrouping("Fbroker-bolt-2", "heartbeat-stream")
+                    .shuffleGrouping("Fbroker-bolt-1", "notification-stream")
+                    .fieldsGrouping("Fsubscriber-bolt-1", "subscription-stream", new Fields("subscriberId"));
+
+            newBuilder.setBolt("Fbroker-bolt-3", brokerBolt3, 1)
+                    .shuffleGrouping("Fbroker-bolt-1", "notification-stream")
+                    .fieldsGrouping("Fsubscriber-bolt-2", "subscription-stream", new Fields("subscriberId"));
+
+            // Adăugarea SubscriberBolt la topologie
+            newBuilder.setBolt("Fsubscriber-bolt-1", subscriberBolt1, 1)
+                    .shuffleGrouping("Fbroker-bolt-2", "notification-stream");
+
+            newBuilder.setBolt("Fsubscriber-bolt-2", subscriberBolt2, 1)
+                    .shuffleGrouping("Fbroker-bolt-3", "notification-stream");
+
+            cluster.submitTopology("word-count-topology-one", config, newBuilder.createTopology());
+
+            // brokerBolt1.simulateFailure();
+            // System.err.println("Simulated failure on Primary: " + brokerBolt1.getBrokerId());
+
+//            Thread.sleep(1000);
+//            System.err.println("Is Primary Active for Primary: " + brokerBolt1.getIsPrimaryActive());
+//            System.err.println("Is Primary Active for Secondary: " + brokerBolt1Secondary.getIsPrimaryActive());
+
             // Keep the topology running for some time (e.g., 60 seconds) for demonstration purposes
 //            Thread.sleep(60000 * 3); // multiplied by the number of minutes wanted
-            Thread.sleep(10000 * 3);
+            Thread.sleep(60000 * 3);
 
             // Shutdown the local cluster
             cluster.shutdown();
@@ -184,10 +252,10 @@ public class Main {
         double matchRate = (double) (matchedPubsSubOne + matchedPubsSubTwo) / (publicationsReceived * 2);
         double matchRatePercentage = matchRate * 100;
 
-        writeStatistics("results/stats/company/company_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
-                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
-//        writeStatistics("results/stats/company/company_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
+//        writeStatistics("results/stats/company/company_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
 //                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
+        writeStatistics("results/stats/company/company_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
+                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/date/date_25.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,
 //                latencySubOne, latencySubTwo, matchRatePercentage, publicationsSent);
 //        writeStatistics("results/stats/date/date_100.txt", publicationsReceived, matchedPubsSubOne, matchedPubsSubTwo,

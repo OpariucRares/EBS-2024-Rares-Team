@@ -1,9 +1,9 @@
-Publications sent: 171
-Publications received: 171
-Matched publications subscriber 1: 97
-Latency subscriber 1: 13 ms
-Matched publications subscriber 2: 70
-Latency subscriber 2: 31 ms
-Match rate: 48.83%
+Publications sent: 27
+Publications received: 0
+Matched publications subscriber 1: 10
+Latency subscriber 1: 24 ms
+Matched publications subscriber 2: 15
+Latency subscriber 2: 8 ms
+Match rate: Infinity%
 Important key company
 Equal percent 1.0
