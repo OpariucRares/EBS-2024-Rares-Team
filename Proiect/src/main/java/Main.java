@@ -166,7 +166,7 @@ public class Main {
             LocalCluster cluster = new LocalCluster();
             cluster.submitTopology("word-count-topology-one", config, builder.createTopology());
 
-            Thread.sleep(10000);
+            Thread.sleep(20000);
             System.err.println("Simulated failure on broker 2");
 
             KillOptions killOptions = new KillOptions();
@@ -218,16 +218,59 @@ public class Main {
 
             cluster.submitTopology("word-count-topology-one", config, newBuilder.createTopology());
 
-            // brokerBolt1.simulateFailure();
-            // System.err.println("Simulated failure on Primary: " + brokerBolt1.getBrokerId());
+            Thread.sleep(40000);
+            System.err.println("Simulated revival on broker 2");
+            cluster.killTopologyWithOpts("word-count-topology-one", killOptions);
+            // Sleep for a short period to ensure the topology is killed
+            try {
+                Thread.sleep(5000); // Wait for 5 seconds to ensure the topology is killed
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-//            Thread.sleep(1000);
-//            System.err.println("Is Primary Active for Primary: " + brokerBolt1.getIsPrimaryActive());
-//            System.err.println("Is Primary Active for Secondary: " + brokerBolt1Secondary.getIsPrimaryActive());
+            TopologyBuilder reviveBuilder = new TopologyBuilder();
+
+            // Adăugarea PublisherSpout la topologie
+            reviveBuilder.setSpout("Spublisher-spout-1", publisherSpout1, 1);
+            // builder.setSpout("publisher-spout2", publisherSpout2, 2);
+
+            // Adăugarea BrokerBolt la topologie
+            reviveBuilder.setBolt("Sbroker-bolt-decode", brokerBoltDecode, 1)
+                    .shuffleGrouping("Spublisher-spout-1");
+            // .fieldsGrouping("broker-bolt-1", "decoded-stream", new Fields("company", "value", "drop", "variation", "date"));
+
+            reviveBuilder.setBolt("Sbroker-bolt-1", brokerBolt1, 1)
+                    .shuffleGrouping("Sbroker-bolt-decode", "decoded-stream")
+                    .fieldsGrouping("Sbroker-bolt-2", "subscription-stream", new Fields("subscriberId"))
+                    .fieldsGrouping("Sbroker-bolt-3", "subscription-stream", new Fields("subscriberId"));
+
+            reviveBuilder.setBolt("Sbroker-bolt-2", brokerBolt2, 1)
+                    .shuffleGrouping("Sbroker-bolt-1", "notification-stream")
+                    .fieldsGrouping("Ssubscriber-bolt-1", "subscription-stream", new Fields("subscriberId"))
+                    .fieldsGrouping("Sbroker-bolt-2-secondary", "heartbeat-stream", new Fields("heartbeat"));
+
+            reviveBuilder.setBolt("Sbroker-bolt-2-secondary", brokerBolt2Secondary, 1)
+                    .shuffleGrouping("Sbroker-bolt-2", "heartbeat-stream")
+                    .shuffleGrouping("Sbroker-bolt-1", "notification-stream")
+                    .fieldsGrouping("Ssubscriber-bolt-1", "subscription-stream", new Fields("subscriberId"));
+
+            reviveBuilder.setBolt("Sbroker-bolt-3", brokerBolt3, 1)
+                    .shuffleGrouping("Sbroker-bolt-1", "notification-stream")
+                    .fieldsGrouping("Ssubscriber-bolt-2", "subscription-stream", new Fields("subscriberId"));
+
+            // Adăugarea SubscriberBolt la topologie
+            reviveBuilder.setBolt("Ssubscriber-bolt-1", subscriberBolt1, 1)
+                    .shuffleGrouping("Sbroker-bolt-2", "notification-stream");
+
+            reviveBuilder.setBolt("Ssubscriber-bolt-2", subscriberBolt2, 1)
+                    .shuffleGrouping("Sbroker-bolt-3", "notification-stream");
+
+            cluster.submitTopology("word-count-topology-one", config, reviveBuilder.createTopology());
 
             // Keep the topology running for some time (e.g., 60 seconds) for demonstration purposes
-//            Thread.sleep(60000 * 3); // multiplied by the number of minutes wanted
-            Thread.sleep(60000 * 3);
+//            Thread.sleep(120000);   // 2min
+//            Thread.sleep(90000);   // 1.5min
+            Thread.sleep(60000);   // 1min
 
             // Shutdown the local cluster
             cluster.shutdown();

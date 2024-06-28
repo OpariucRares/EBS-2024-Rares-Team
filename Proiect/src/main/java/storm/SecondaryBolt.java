@@ -10,6 +10,9 @@ import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -28,6 +31,7 @@ public class SecondaryBolt extends BaseRichBolt {
     private final AtomicInteger missedHeartbeats = new AtomicInteger(0);
     private final int MAX_MISSED_HEARTBEATS = 5;
     private final long HEARTBEAT_INTERVAL = 3000; // 1 second for heartbeat interval
+    private Thread heartbeatThread;
 
     private static final long TIMEOUT = 15000;
     private volatile long lastHeartbeatTime;
@@ -44,7 +48,7 @@ public class SecondaryBolt extends BaseRichBolt {
         this.collector = collector;
 
         // Start a thread to check heartbeats
-        new Thread(() -> {
+        heartbeatThread = new Thread(() -> {
             while (true) {
                 try {
                     Thread.sleep(HEARTBEAT_INTERVAL); // Check heartbeat every second
@@ -59,7 +63,8 @@ public class SecondaryBolt extends BaseRichBolt {
                     }
                 }
             }
-        }).start();
+        });
+        heartbeatThread.start();
 //        new Thread(() -> {
 //            while (true) {
 //                try {
@@ -300,5 +305,14 @@ public class SecondaryBolt extends BaseRichBolt {
         declarer.declareStream("decoded-stream",
                 new Fields("company", "value", "drop", "variation", "date", "emissionTime"));
         declarer.declareStream("heartbeat-stream", new Fields("heartbeat"));
+    }
+
+    @Override
+    public void cleanup() {
+        // Ensure the heartbeat thread is stopped when the bolt is cleaned up
+        isPrimaryActive.set(true);
+//        if (heartbeatThread != null && heartbeatThread.isAlive()) {
+//            heartbeatThread.interrupt();
+//        }
     }
 }

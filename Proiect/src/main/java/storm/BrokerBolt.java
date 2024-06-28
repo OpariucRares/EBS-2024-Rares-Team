@@ -14,7 +14,6 @@ import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 
 import models.publication.PublicationOuterClass.*;
-import util.Utils;
 
 //import org.apache.zookeeper.*;
 //import org.apache.zookeeper.data.Stat;
@@ -58,7 +57,7 @@ public class BrokerBolt extends BaseRichBolt {
         this.collector = collector;
 
         // Start a thread to emit heartbeats
-        new Thread(() -> {
+        heartbeatThread = new Thread(() -> {
             while (true) {
                 try {
                     Thread.sleep(HEARTBEAT_INTERVAL);
@@ -69,7 +68,8 @@ public class BrokerBolt extends BaseRichBolt {
                     collector.emit("heartbeat-stream", new Values("heartbeat", this.brokerId));
                 }
             }
-        }).start();
+        });
+        heartbeatThread.start();
 
 //        heartbeatThread = new Thread(() -> {
 //            while (isActive.get() && !Thread.currentThread().isInterrupted()) {
@@ -345,6 +345,12 @@ public class BrokerBolt extends BaseRichBolt {
 
     @Override
     public void cleanup() {
+        // Ensure the heartbeat thread is stopped when the bolt is cleaned up
+        isActive.set(false);
+//        if (heartbeatThread != null && heartbeatThread.isAlive()) {
+//            heartbeatThread.interrupt();
+//        }
+
         if (!"broker1".equals(this.brokerId))
             return;
 
@@ -354,12 +360,6 @@ public class BrokerBolt extends BaseRichBolt {
             writer.newLine();
         } catch (IOException e) {
             System.err.println("Error writing to file: " + e.getMessage());
-        }
-
-        // Ensure the heartbeat thread is stopped when the bolt is cleaned up
-        isActive.set(false);
-        if (heartbeatThread != null && heartbeatThread.isAlive()) {
-            heartbeatThread.interrupt();
         }
     }
 
